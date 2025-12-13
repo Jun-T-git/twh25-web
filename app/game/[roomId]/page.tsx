@@ -390,15 +390,73 @@ export default function GamePage() {
             )}
 
             {roomData.status === 'FINISHED' && (
-                  <div className="mx-4 p-6 bg-white/95 backdrop-blur rounded-2xl shadow-xl border-4 border-indigo-500 text-center max-h-[85vh] overflow-y-auto no-scrollbar scroll-smooth">
-                    <h1 className="text-3xl font-black text-indigo-900 mb-6 sticky top-0 bg-white/95 py-2 z-10">GAME SET</h1>
+                  <div className="mx-4 p-6 bg-white/95 backdrop-blur rounded-2xl shadow-xl border-4 border-sky-500 text-center max-h-[85vh] overflow-y-auto no-scrollbar scroll-smooth">
+                    <h1 className="text-3xl font-black text-sky-900 mb-6">GAME SET</h1>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 pb-8 border-b border-indigo-100">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 pb-8 border-b border-sky-100">
+                            <div>
+                            <h3 className="text-lg font-bold text-sky-900 mb-4 flex items-center gap-2">
+                                <Trophy className="w-6 h-6 text-yellow-500" />
+                                <span>最終結果</span>
+                            </h3>
+                            
+                            {roomData.gameResult?.citySummary && (
+                                <div className="mb-6 bg-sky-50 p-4 rounded-xl text-left border border-sky-100">
+                                    <p className="text-sm font-bold text-sky-400 mb-1">CITY REPORT</p>
+                                    <p className="font-bold text-sky-800 leading-relaxed">
+                                        {roomData.gameResult.citySummary}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="space-y-3">
+                                {Object.values(playersData)
+                                    .map(p => {
+                                        let ideologyId: string | undefined;
+                                        if (typeof p.ideology === 'string') ideologyId = p.ideology;
+                                        else if (p.ideology) ideologyId = (p.ideology as any).id || (p.ideology as any).ideologyId;
+                                        
+                                        const ideology = ideologyId ? loadedIdeologies[ideologyId] : null;
+                                        
+                                        let score = 0;
+                                        if (ideology && ideology.coefficients) {
+                                            score = (['economy', 'welfare', 'education', 'security', 'humanRights', 'environment'] as const).reduce((acc, key) => {
+                                                const paramVal = roomData.cityParams[key] || 0;
+                                                const coef = ideology.coefficients[key] || 0;
+                                                return acc + (paramVal * coef);
+                                            }, 0);
+                                        }
+                                        return {
+                                            playerId: p.id,
+                                            playerName: p.displayName,
+                                            ideologyName: ideology?.name || 'Unknown',
+                                            score
+                                        };
+                                    })
+                                    .sort((a, b) => b.score - a.score)
+                                    .map((r, i) => (
+                                        <div key={r.playerId} className={`flex items-center p-4 rounded-xl ${i===0 ? 'bg-yellow-100 border-2 border-yellow-400' : 'bg-slate-50 border border-slate-200'}`}>
+                                            <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-white mr-3 ${i===0 ? 'bg-yellow-500' : 'bg-slate-400'}`}>
+                                                {i+1}
+                                            </div>
+                                            <div className="flex-1 text-left">
+                                                <div className="font-bold text-slate-800">{r.playerName}</div>
+                                                <div className="text-xs text-slate-500">{r.ideologyName}</div>
+                                            </div>
+                                            <div className="text-xl font-black text-sky-600">
+                                                {Math.round(r.score)}pt
+                                            </div>
+                                        </div> 
+                                    ))
+                                }
+                            </div>
+                            </div>
+
                             {/* Passed Policies Timeline */}
                             <div className="text-left">
-                            <h3 className="text-lg font-bold text-indigo-900 mb-4 flex items-center gap-2">
-                                <History className="w-6 h-6 text-indigo-600" />
-                                <span>政策の軌跡</span>
+                            <h3 className="text-lg font-bold text-sky-900 mb-4 flex items-center gap-2">
+                                <History className="w-6 h-6 text-sky-600" />
+                                <span>可決された政策</span>
                             </h3>
                             <div className="space-y-4">
                                 {(roomData.passedPolicyIds || []).length > 0 ? (
@@ -441,67 +499,9 @@ export default function GamePage() {
                                 )}
                             </div>
                             </div>
-
-                            <div>
-                            <h3 className="text-lg font-bold text-indigo-900 mb-4 flex items-center gap-2">
-                                <Trophy className="w-6 h-6 text-yellow-500" />
-                                <span>最終結果</span>
-                            </h3>
-                            
-                            {roomData.gameResult?.citySummary && (
-                                <div className="mb-6 bg-indigo-50 p-4 rounded-xl text-left border border-indigo-100">
-                                    <p className="text-sm font-bold text-indigo-400 mb-1">CITY REPORT</p>
-                                    <p className="font-bold text-indigo-800 leading-relaxed">
-                                        {roomData.gameResult.citySummary}
-                                    </p>
-                                </div>
-                            )}
-
-                            <div className="space-y-3">
-                                {Object.values(playersData)
-                                    .map(p => {
-                                        let ideologyId: string | undefined;
-                                        if (typeof p.ideology === 'string') ideologyId = p.ideology;
-                                        else if (p.ideology) ideologyId = (p.ideology as any).id || (p.ideology as any).ideologyId;
-                                        
-                                        const ideology = ideologyId ? loadedIdeologies[ideologyId] : null;
-                                        
-                                        let score = 0;
-                                        if (ideology && ideology.coefficients) {
-                                            score = (['economy', 'welfare', 'education', 'security', 'humanRights', 'environment'] as const).reduce((acc, key) => {
-                                                const paramVal = roomData.cityParams[key] || 0;
-                                                const coef = ideology.coefficients[key] || 0;
-                                                return acc + (paramVal * coef);
-                                            }, 0);
-                                        }
-                                        return {
-                                            playerId: p.id,
-                                            playerName: p.displayName,
-                                            ideologyName: ideology?.name || 'Unknown',
-                                            score
-                                        };
-                                    })
-                                    .sort((a, b) => b.score - a.score)
-                                    .map((r, i) => (
-                                        <div key={r.playerId} className={`flex items-center p-4 rounded-xl ${i===0 ? 'bg-yellow-100 border-2 border-yellow-400' : 'bg-slate-50 border border-slate-200'}`}>
-                                            <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-white mr-3 ${i===0 ? 'bg-yellow-500' : 'bg-slate-400'}`}>
-                                                {i+1}
-                                            </div>
-                                            <div className="flex-1 text-left">
-                                                <div className="font-bold text-slate-800">{r.playerName}</div>
-                                                <div className="text-xs text-slate-500">{r.ideologyName}</div>
-                                            </div>
-                                            <div className="text-xl font-black text-indigo-600">
-                                                {Math.round(r.score)}pt
-                                            </div>
-                                        </div> 
-                                    ))
-                                }
-                            </div>
-                            </div>
                     </div>
 
-                    <button onClick={() => router.push('/')} className="w-full px-6 py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-500 transition-transform active:scale-95 sticky bottom-0 z-20">
+                    <button onClick={() => router.push('/')} className="w-full px-6 py-4 bg-sky-500 text-white font-bold rounded-xl shadow-lg hover:bg-sky-400 transition-transform active:scale-95 sticky bottom-0 z-20">
                         トップへ戻る
                     </button>
                 </div>
