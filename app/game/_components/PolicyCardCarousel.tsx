@@ -28,7 +28,7 @@ export function PolicyCardCarousel({ cards, selectedIndex, onSelect }: PolicyCar
             <motion.div
               key={card.id}
               className={clsx(
-                "snap-center shrink-0 w-[280px] h-[400px] rounded-2xl bg-white shadow-xl flex flex-col overflow-hidden border transition-all duration-300 cursor-pointer",
+                "snap-center shrink-0 w-[280px] h-[400px] rounded-xl bg-white shadow-xl flex flex-col overflow-hidden border transition-all duration-300 cursor-pointer",
                 isActive ? "border-sky-400 ring-2 ring-sky-100 scale-100 shadow-2xl z-10" : "border-gray-100 scale-95"
               )}
               onClick={() => onSelect(index)}
@@ -36,14 +36,7 @@ export function PolicyCardCarousel({ cards, selectedIndex, onSelect }: PolicyCar
             >
               {/* Card Image Area */}
               <div className="h-1/2 bg-gray-100 flex items-center justify-center relative overflow-hidden">
-                {card.imageUrl ? (
-                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={card.imageUrl} alt={card.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-sky-50 to-indigo-50 flex items-center justify-center text-sky-200">
-                    <span className="text-6xl font-black opacity-20">{index + 1}</span>
-                  </div>
-                )}
+                <img src={card.imageUrl ?? `/images/policy-0${index + 1}.png`} alt={card.title} className="w-full h-full object-cover" />                
                 {isActive && (
                     <div className="absolute top-3 right-3 bg-sky-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
                         SELECTED

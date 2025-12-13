@@ -258,7 +258,7 @@ export default function GamePage() {
           id: id,
           title: master?.title || 'Unknown',
           description: master?.description || '...',
-          imageUrl: `https://source.unsplash.com/random/800x600?sig=${id}` 
+          imageUrl: undefined
       }
   });
 
