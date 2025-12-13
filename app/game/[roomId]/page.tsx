@@ -398,10 +398,8 @@ export default function GamePage() {
                         cards={currentCards}
                         selectedIndex={selectedCardIndex}
                         onSelect={setSelectedCardIndex}
-                        getBadge={(card, index, isActive) => {
-                            if (roomData.status !== 'RESULT' || !roomData.lastResult) return undefined;
-
-                            const myVote = myUserId && roomData.lastResult.voteDetails?.[myUserId] === card.id;
+                        getBadge={roomData.status === 'RESULT' && roomData.lastResult ? (card, index, isActive) => {
+                            const myVote = myUserId && roomData.lastResult!.voteDetails?.[myUserId] === card.id;
                             
                             return (
                                 <div className="flex flex-col gap-1 items-end">
@@ -412,10 +410,9 @@ export default function GamePage() {
                                     )}
                                 </div>
                             );
-                        }}
-                        getOverlay={(card, index, isActive) => {
-                             if (roomData.status !== 'RESULT' || !roomData.lastResult) return undefined;
-                             const isPassed = card.id === roomData.lastResult.passedPolicyId;
+                        } : undefined}
+                        getOverlay={roomData.status === 'RESULT' && roomData.lastResult ? (card, index, isActive) => {
+                             const isPassed = card.id === roomData.lastResult!.passedPolicyId;
                              
                              if (isPassed) {
                                 return (
@@ -431,7 +428,7 @@ export default function GamePage() {
                                     <div className="absolute inset-0 bg-slate-500/30 backdrop-grayscale z-0 pointer-events-none transition-all duration-500" />
                                 );
                              }
-                        }}
+                        } : undefined}
                     />
                     
                     {/* Result News Flash - Animated In */}
