@@ -1,6 +1,10 @@
-import { PlayerData, RoomData } from "@/app/types/firestore";
+import { MasterIdeology, MasterPolicy, PlayerData, RoomData } from "@/app/types/firestore";
+import { db } from "@/lib/firebase/client";
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query } from "firebase/firestore";
 
-const API_BASE = '/api/rooms';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL 
+  ? `${process.env.NEXT_PUBLIC_API_URL}/api/rooms` 
+  : '/api/rooms';
 
 export interface RoomResponse {
   room: RoomData;
@@ -16,10 +20,37 @@ export interface RoomSummary {
 }
 
 export async function listRooms(): Promise<RoomSummary[]> {
-  const res = await fetch(API_BASE);
-  if (!res.ok) throw new Error('Failed to fetch rooms');
-  const data = await res.json();
-  return data.rooms;
+  const roomsRef = collection(db, 'rooms');
+  const q = query(roomsRef, orderBy('createdAt', 'desc'), limit(20));
+  const snapshot = await getDocs(q);
+
+  const rooms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RoomData & { id: string }));
+
+  // Helper to get host name (efficiently would be better, but for 20 items parallel fetch is okay)
+  const summaries = await Promise.all(rooms.map(async (room) => {
+    // Fetch all players to get count and host name
+    const playersRef = collection(db, 'rooms', room.id, 'players');
+    const playersSnap = await getDocs(playersRef);
+    const playerCount = playersSnap.size;
+
+    let hostName = 'Unknown';
+    if (room.hostId) {
+       const hostDoc = playersSnap.docs.find(d => d.id === room.hostId);
+       if (hostDoc) {
+           hostName = (hostDoc.data() as PlayerData).displayName;
+       }
+    }
+    
+    return {
+        roomId: room.id,
+        hostName,
+        playerCount,
+        status: room.status,
+        createdAt: room.createdAt
+    };
+  }));
+
+  return summaries.filter(s => s.playerCount > 0 && s.status === 'LOBBY' && s.playerCount < 4);
 }
 
 export async function createRoom(displayName: string, photoURL?: string): Promise<{ roomId: string, playerId: string }> {
@@ -29,7 +60,8 @@ export async function createRoom(displayName: string, photoURL?: string): Promis
     body: JSON.stringify({ displayName, photoURL }),
   });
   if (!res.ok) throw new Error('Failed to create room');
-  return res.json();
+  const data = await res.json();
+  return data;
 }
 
 export async function joinRoom(roomId: string, displayName: string, photoURL?: string): Promise<{ playerId: string }> {
@@ -39,17 +71,11 @@ export async function joinRoom(roomId: string, displayName: string, photoURL?: s
     body: JSON.stringify({ displayName, photoURL }),
   });
   if (!res.ok) throw new Error('Failed to join room');
-  return res.json();
+  const data = await res.json();
+  return data;
 }
 
-export async function toggleReady(roomId: string, userId: string): Promise<boolean> {
-  const res = await fetch(`${API_BASE}/${roomId}/ready`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ playerId: userId }),
-  });
-  return res.ok;
-}
+
 
 export async function startGame(roomId: string, userId: string) {
   const res = await fetch(`${API_BASE}/${roomId}/start`, {
@@ -61,31 +87,46 @@ export async function startGame(roomId: string, userId: string) {
   return res.json();
 }
 
-export async function getRoom(roomId: string): Promise<RoomResponse> {
-  const res = await fetch(`${API_BASE}/${roomId}`);
-  if (!res.ok) throw new Error('Failed to fetch room');
-  return res.json();
-}
+
 
 export function subscribeToRoom(roomId: string, onUpdate: (data: RoomResponse) => void): () => void {
-  // Mock implementation of onSnapshot using polling
-  const fetchData = async () => {
-    try {
-      const data = await getRoom(roomId);
-      onUpdate(data);
-    } catch (error) {
-      console.error('Subscription polling error:', error);
+  let roomData: RoomData | null = null;
+  let playersData: Record<string, PlayerData> = {};
+
+  // Listen to Room Document
+  const roomRef = doc(db, 'rooms', roomId);
+  const unsubRoom = onSnapshot(roomRef, (docSnap) => {
+    if (docSnap.exists()) {
+      roomData = docSnap.data() as RoomData;
+      // Send update if we have room data (even if players empty initially)
+      onUpdate({ room: roomData, players: playersData });
     }
+  }, (error) => {
+      console.error("Error listening to room:", error);
+  });
+
+  // Listen to Players Collection
+  const playersRef = collection(db, 'rooms', roomId, 'players');
+  const unsubPlayers = onSnapshot(playersRef, (querySnap) => {
+    const newPlayers: Record<string, PlayerData> = {};
+    querySnap.forEach((docSnap) => {
+      // Inject document ID as id property
+      newPlayers[docSnap.id] = { id: docSnap.id, ...docSnap.data() } as PlayerData;
+    });
+    playersData = newPlayers;
+    
+    if (roomData) {
+        onUpdate({ room: roomData, players: playersData });
+    }
+  }, (error) => {
+      console.error("Error listening to players:", error);
+  });
+
+  return () => {
+    unsubRoom();
+    unsubPlayers();
   };
-
-  fetchData(); // Initial fetch
-  const intervalId = setInterval(fetchData, 1000); // 1 sec polling
-
-  // Return unsubscribe function
-  return () => clearInterval(intervalId);
 }
-
-// ...existing code...
 
 export async function votePolicy(roomId: string, userId: string, policyId: string) {
   const res = await fetch(`${API_BASE}/${roomId}/vote`, {
@@ -97,17 +138,10 @@ export async function votePolicy(roomId: string, userId: string, policyId: strin
   return res.json();
 }
 
-export async function resolveVotes(roomId: string): Promise<any> {
-  const res = await fetch(`${API_BASE}/${roomId}/resolve`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  });
-  if (!res.ok) throw new Error('Failed to resolve votes');
-  return res.json();
-}
 
-export async function nextTurn(roomId: string): Promise<any> {
+
+
+export async function nextTurn(roomId: string): Promise<{ status: string, turn: number }> {
     const res = await fetch(`${API_BASE}/${roomId}/next`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -117,3 +151,32 @@ export async function nextTurn(roomId: string): Promise<any> {
     return res.json();
 }
 
+
+export async function getPolicies(policyIds: string[]): Promise<MasterPolicy[]> {
+  const promises = policyIds.map(async (id) => {
+    const docRef = doc(db, 'master_policies', id);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() } as MasterPolicy;
+    }
+    return null;
+  });
+
+  const policies = await Promise.all(promises);
+  return policies.filter((p): p is MasterPolicy => p !== null);
+}
+
+
+export async function getIdeologies(ideologyIds: string[]): Promise<MasterIdeology[]> {
+    const promises = ideologyIds.map(async (id) => {
+        const docRef = doc(db, 'master_ideologies', id);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+            return { id: snap.id, ...snap.data() } as MasterIdeology;
+        }
+        return null;
+    });
+
+    const ideologies = await Promise.all(promises);
+    return ideologies.filter((i): i is MasterIdeology => i !== null);
+}

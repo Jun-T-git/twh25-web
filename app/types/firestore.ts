@@ -40,7 +40,7 @@ export interface PlayerData {
   isHost: boolean;
   isReady: boolean;
   isPetitionUsed: boolean;
-  ideology?: string; // ID of the ideology (Hidden to others in real API, but mock store holds it)
+  ideology?: string | MasterIdeology; // ID or full object
   currentVote?: string; // Policy ID (Hidden to others in real API)
 }
 

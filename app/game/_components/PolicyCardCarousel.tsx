@@ -1,5 +1,7 @@
+
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { useRef } from 'react';
 import { PolicyCard } from '../types';
 
@@ -36,7 +38,13 @@ export function PolicyCardCarousel({ cards, selectedIndex, onSelect }: PolicyCar
             >
               {/* Card Image Area */}
               <div className="h-1/2 bg-gray-100 flex items-center justify-center relative overflow-hidden">
-                <img src={card.imageUrl ?? `/images/policy-0${index + 1}.png`} alt={card.title} className="w-full h-full object-cover" />                
+                {/* Replaced img with Image component */}
+                <Image
+                    src={card.imageUrl ?? `/images/policy-0${index + 1}.png`}
+                    alt={card.title}
+                    fill
+                    className="object-cover"
+                />
                 {isActive && (
                     <div className="absolute top-3 right-3 bg-sky-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
                         選択中

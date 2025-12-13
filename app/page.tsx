@@ -1,5 +1,7 @@
 'use client';
 
+import { useUser } from '@/app/contexts/UserContext';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import * as api from './game/lib/api';
@@ -7,6 +9,7 @@ import { RoomSummary } from './game/lib/api';
 
 export default function Home() {
   const router = useRouter();
+  const { registerUser } = useUser();
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -52,9 +55,8 @@ export default function Home() {
       }
 
       if (roomId && userId) {
-        // Persist User ID for the game page to pick up (Simple approach)
-        // Ideally checking localStorage in GamePage.
-        localStorage.setItem(`user_${roomId}`, userId);
+        // Persist User ID for the game page to pick up via Context
+        registerUser(roomId, userId);
         router.push(`/game/${roomId}`);
       }
     } catch (error) {
@@ -64,100 +66,132 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-      {/* Hero Section */}
-      <section className="bg-slate-900 text-white py-20 px-6 text-center">
-        <h1 className="text-4xl md:text-6xl font-black mb-6">Town Hall 2025</h1>
-        <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-10">
-          市民となり、議論し、未来の街をつくる。<br/>
-          対話型シミュレーションゲーム。
-        </p>
-        <button 
-          onClick={handleOpenCreate}
-          className="bg-sky-500 hover:bg-sky-400 text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg transition-transform active:scale-95"
-        >
-          ルームを作成して開始
-        </button>
-      </section>
+    <div className="min-h-screen flex flex-col relative overflow-hidden font-sans text-slate-900">
+      {/* Background */}
+      <div className="absolute inset-0 z-0">
+         <Image 
+           src="/images/game-bg.jpg"
+           alt="City Background"
+           fill
+           priority
+           className="object-cover object-bottom"
+           quality={80}
+         />
+         <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" />
+      </div>
 
-      {/* Room List Section */}
-      <section className="max-w-4xl mx-auto py-16 px-6">
-        <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-700">募集中・プレイ中のルーム</h2>
-            <button onClick={() => setRefreshKey(prev => prev + 1)} className="text-sky-600 hover:underline">
-                更新
+      <main className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6 overflow-y-auto w-full">
+          
+        {/* Hero Section */}
+        <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <h1 className="text-5xl md:text-7xl font-black mb-4 text-white drop-shadow-2xl tracking-tight">
+                Town Hall 2025
+            </h1>
+            <p className="text-xl md:text-2xl text-white/90 font-medium mb-10 drop-shadow-md">
+                未来の街をつくる、対話型シミュレーション。
+            </p>
+            <button 
+                onClick={handleOpenCreate}
+                className="bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white text-xl font-bold py-5 px-12 rounded-full shadow-2xl transition-transform active:scale-95 border border-white/20 backdrop-blur-sm"
+            >
+                ✨ 新しい街をつくる
             </button>
         </div>
 
-        {rooms.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed border-slate-300 rounded-xl text-slate-400">
-                ルームが見つかりません。新しく作成しましょう！
+        {/* Room List Section */}
+        <div className="w-full max-w-4xl bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-100">
+            <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    🏙 募集中・プレイ中の街
+                </h2>
+                <button 
+                    onClick={() => setRefreshKey(prev => prev + 1)} 
+                    className="text-white/80 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-colors font-bold text-sm"
+                >
+                    🔄 更新
+                </button>
             </div>
-        ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-                {rooms.map(room => (
-                    <div key={room.roomId} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-2">
-                            <span className={`px-2 py-1 text-xs font-bold rounded ${room.status === 'LOBBY' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                                {room.status}
-                            </span>
-                            <span className="text-xs text-slate-400">ID: {room.roomId}</span>
+
+            {rooms.length === 0 ? (
+                <div className="text-center py-16 border-2 border-dashed border-white/20 rounded-2xl text-white/60">
+                    <p className="text-lg font-bold">ルームが見つかりません</p>
+                    <p className="text-sm mt-2">「新しい街をつくる」からゲームを始めましょう！</p>
+                </div>
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                    {rooms.map(room => (
+                        <div key={room.roomId} className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 group">
+                            <div className="flex justify-between items-start mb-3">
+                                <span className={`px-3 py-1 text-xs font-black rounded-full shadow-sm ${
+                                    room.status === 'LOBBY' 
+                                    ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white' 
+                                    : 'bg-slate-200 text-slate-500'
+                                }`}>
+                                    {room.status === 'LOBBY' ? 'WAITING' : room.status}
+                                </span>
+                                <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">ID: {room.roomId}</span>
+                            </div>
+                            <h3 className="font-bold text-xl text-slate-800 mb-1 group-hover:text-blue-600 transition-colors">
+                                {room.hostName} の街
+                            </h3>
+                            <div className="flex items-center text-sm text-slate-500 mb-5">
+                                <span className="mr-2">👥</span> 参加者: <span className="font-bold ml-1">{room.playerCount}人</span>
+                            </div>
+                            
+                            {room.status === 'LOBBY' ? (
+                                <button 
+                                    onClick={() => handleOpenJoin(room.roomId)}
+                                    className="w-full py-3 bg-slate-800 text-white font-bold rounded-xl shadow-md hover:bg-slate-700 transition-all active:scale-95"
+                                >
+                                    参加する
+                                </button>
+                            ) : (
+                                <button disabled className="w-full py-3 bg-slate-100 text-slate-400 font-bold rounded-xl cursor-not-allowed border border-slate-200">
+                                    進行中
+                                </button>
+                            )}
                         </div>
-                        <h3 className="font-bold text-lg mb-1">{room.hostName} の街</h3>
-                        <p className="text-sm text-slate-500 mb-4">参加者: {room.playerCount}人</p>
-                        
-                        {room.status === 'LOBBY' ? (
-                            <button 
-                                onClick={() => handleOpenJoin(room.roomId)}
-                                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors"
-                            >
-                                参加する
-                            </button>
-                        ) : (
-                             <button disabled className="w-full py-2 bg-slate-50 text-slate-300 font-bold rounded-lg cursor-not-allowed">
-                                進行中
-                            </button>
-                        )}
-                    </div>
-                ))}
-            </div>
-        )}
-      </section>
+                    ))}
+                </div>
+            )}
+        </div>
+
+      </main>
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="p-6">
-                    <h2 className="text-2xl font-bold mb-4">
-                        {mode === 'create' ? '新しい街をつくる' : '街に参加する'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-white/50">
+                <div className="p-8">
+                    <h2 className="text-2xl font-black mb-6 text-slate-800 text-center">
+                        {mode === 'create' ? '✨ 新しい街をつくる' : '👋 街に参加する'}
                     </h2>
                     <form onSubmit={handleSubmit}>
-                        <div className="mb-6">
-                            <label className="block text-sm font-bold text-slate-700 mb-2">
+                        <div className="mb-8">
+                            <label className="block text-sm font-bold text-slate-500 mb-2 ml-1">
                                 プレイヤー名
                             </label>
                             <input 
                                 type="text" 
                                 value={displayName}
                                 onChange={e => setDisplayName(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                className="w-full px-5 py-4 rounded-xl bg-slate-50 border-2 border-slate-200 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all font-bold text-lg"
                                 placeholder="名前を入力..."
                                 autoFocus
                                 required
                             />
                         </div>
-                        <div className="flex gap-3 justify-end">
+                        <div className="flex gap-3">
                             <button 
                                 type="button" 
                                 onClick={() => setShowModal(false)}
-                                className="px-5 py-2 font-bold text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+                                className="flex-1 py-4 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
                             >
                                 キャンセル
                             </button>
                             <button 
                                 type="submit" 
-                                className="px-6 py-2 font-bold text-white bg-sky-500 hover:bg-sky-400 rounded-full shadow-lg transition-transform active:scale-95"
+                                className="flex-1 py-4 font-bold text-white bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-500 hover:to-blue-700 rounded-xl shadow-lg transition-transform active:scale-95"
                             >
                                 {mode === 'create' ? '作成して開始' : '参加する'}
                             </button>

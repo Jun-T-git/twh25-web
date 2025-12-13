@@ -11,10 +11,9 @@ interface GameFooterProps {
     description: string;
     coefficients?: Record<string, number>;
   };
-  playerName?: string;
 }
 
-export function GameFooter({ onVote, hasVoted, ideology, playerName }: GameFooterProps) {
+export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
   const [isRevealingIdentity, setIsRevealingIdentity] = useState(false);
 
   // Calculate Radar Chart Points

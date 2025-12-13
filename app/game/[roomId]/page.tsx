@@ -1,10 +1,10 @@
 'use client';
 
-import { MOCK_IDEOLOGIES, MOCK_POLICIES } from '@/app/api/_mock/data';
-import { PlayerData, RoomData } from '@/app/types/firestore';
+import { useUser } from '@/app/contexts/UserContext';
+import { MasterIdeology, MasterPolicy, PlayerData, RoomData } from '@/app/types/firestore';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GameFooter } from '../_components/GameFooter';
 import { GameHeader } from '../_components/GameHeader';
 import { PlayerStatus } from '../_components/PlayerStatus';
@@ -22,9 +22,11 @@ export default function GamePage() {
   const router = useRouter();
   const roomId = params?.roomId as string;
 
-  const [myUserId, setMyUserId] = useState<string | null>(null);
+  const { userId: myUserId, registerUser, loadUser } = useUser();
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [playersData, setPlayersData] = useState<Record<string, PlayerData>>({});
+  const [loadedPolicies, setLoadedPolicies] = useState<Record<string, MasterPolicy>>({});
+  const [loadedIdeologies, setLoadedIdeologies] = useState<Record<string, MasterIdeology>>({});
   
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
@@ -32,20 +34,23 @@ export default function GamePage() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinName, setJoinName] = useState('');
 
-  const isResolvingRef = useRef(false);
+
 
   // 1. Initialize & Restore Session
   useEffect(() => {
     if (!roomId) return;
     
-    const storedUserId = localStorage.getItem(`user_${roomId}`);
-    if (storedUserId) {
-        setMyUserId(storedUserId);
-    } else {
-        // No session found, prompt to join
-        setShowJoinModal(true);
+    // Attempt to load user from context/local storage
+    const loadedId = loadUser(roomId);
+    
+    if (!loadedId) {
+         // No session found, prompt to join
+         setShowJoinModal(true);
     }
+    
+    // Set loading to false
     setIsLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
 
   // 2. Real-time Subscription
@@ -57,10 +62,7 @@ export default function GamePage() {
         setRoomData(room);
         setPlayersData(players);
 
-        // Reset resolving lock if not in VOTING state
-        if (room.status !== 'VOTING') {
-            isResolvingRef.current = false;
-        }
+
 
         // Check if my vote is recorded
         if (myUserId && room.votes && room.votes[myUserId]) {
@@ -69,34 +71,89 @@ export default function GamePage() {
             setHasVoted(false);
         }
 
-        // Host Logic: Auto-resolve votes (Demo helper)
-        if (myUserId && players[myUserId]?.isHost && room.status === 'VOTING') {
-            const voterCount = Object.keys(room.votes || {}).length;
-            const playerCount = Object.keys(players).length;
-            if (playerCount > 0 && voterCount === playerCount) {
-                if (!isResolvingRef.current) {
-                    isResolvingRef.current = true;
-                    setTimeout(() => {
-                        api.resolveVotes(roomId).catch(err => {
-                            console.error('Resolve failed:', err);
-                            isResolvingRef.current = false;
-                        });
-                    }, 1000);
-                }
-            }
-        }
+
     });
 
     return () => unsubscribe();
   }, [roomId, myUserId]);
+
+  // 3. Fetch Policies
+  useEffect(() => {
+    if (!roomData?.currentPolicyIds) return;
+
+    const fetchPolicies = async () => {
+        const missingIds = roomData.currentPolicyIds.filter(id => !loadedPolicies[id]);
+        if (missingIds.length === 0) return;
+
+        try {
+            const policies = await api.getPolicies(missingIds);
+            const newPolicies = { ...loadedPolicies };
+            policies.forEach(p => {
+                newPolicies[p.id] = p;
+            });
+            setLoadedPolicies(newPolicies);
+        } catch (err) {
+            console.error('Failed to fetch policies:', err);
+        }
+    };
+
+    fetchPolicies();
+  }, [roomData?.currentPolicyIds, loadedPolicies]);
+
+  // 4. Fetch Ideologies
+  useEffect(() => {
+    const fetchIdeologies = async () => {
+        const ideologyIds = new Set<string>();
+        Object.values(playersData).forEach(p => {
+            if (!p.ideology) return;
+            if (typeof p.ideology === 'string') {
+                ideologyIds.add(p.ideology);
+            } else if (typeof p.ideology === 'object') {
+                 // We already have the data, ensure it's in loadedIdeologies
+                 // Careful: The object from backend might satisfy MasterIdeology or be slightly different
+                 // The log showed: { ideologyId: '...', ... }
+                 // Check if it has 'id' or 'ideologyId'
+                 const i = p.ideology as MasterIdeology & { ideologyId?: string };
+                 const id = i.id || i.ideologyId;
+                 
+                 // Only update if id exists and not already loaded to prevent infinite loops
+                 if (id && !loadedIdeologies[id]) {
+                     setLoadedIdeologies(prev => ({
+                         ...prev,
+                         [id]: { ...i, id } 
+                     }));
+                 }
+            }
+        });
+
+        const missingIds = Array.from(ideologyIds).filter(id => !loadedIdeologies[id]);
+        if (missingIds.length === 0) return;
+
+        try {
+            const ideologies = await api.getIdeologies(missingIds);
+            const newIdeologies = { ...loadedIdeologies };
+            ideologies.forEach(i => {
+                newIdeologies[i.id] = i;
+            });
+            setLoadedIdeologies(newIdeologies);
+        } catch (err) {
+            console.error('Failed to fetch ideologies:', err);
+        }
+    };
+
+    fetchIdeologies();
+  }, [playersData, loadedIdeologies]);
+
+
 
   const handleJoinSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!joinName.trim()) return;
       try {
           const res = await api.joinRoom(roomId, joinName);
-          localStorage.setItem(`user_${roomId}`, res.playerId);
-          setMyUserId(res.playerId);
+          // Update Context instead of local state
+          registerUser(roomId, res.playerId);
+          
           setShowJoinModal(false);
       } catch (err) {
           console.error('Failed to join:', err);
@@ -136,8 +193,7 @@ export default function GamePage() {
       const botNames = ['ゆい', 'れん', '健太先生'];
       const randomName = botNames[Math.floor(Math.random() * botNames.length)];
       try {
-          const { playerId: botId } = await api.joinRoom(roomId, `${randomName} (Bot)`);
-          await api.toggleReady(roomId, botId);
+          await api.joinRoom(roomId, `${randomName} (Bot)`);
       } catch (err) {
           console.error(err);
       }
@@ -146,8 +202,6 @@ export default function GamePage() {
   const handleStartGame = async () => {
       if (!myUserId) return;
       try {
-          // Ready myself first
-          await api.toggleReady(roomId, myUserId);
           await api.startGame(roomId, myUserId);
       } catch (err) {
           console.error('Failed to start:', err);
@@ -253,11 +307,11 @@ export default function GamePage() {
   });
 
   const currentCards: PolicyCard[] = roomData.currentPolicyIds.map(id => {
-      const master = MOCK_POLICIES.find(p => p.id === id);
+      const master = loadedPolicies[id];
       return {
           id: id,
-          title: master?.title || 'Unknown',
-          description: master?.description || '...',
+          title: master?.title || 'Unknown Policy',
+          description: master?.description || 'Loading...',
           imageUrl: undefined
       }
   });
@@ -265,10 +319,24 @@ export default function GamePage() {
   /* Player Ideology Resolution */
   const myPlayer = playersData[myUserId || ''];
   const myIdeology = myPlayer?.ideology 
-    ? {
-        ...MOCK_IDEOLOGIES.find(i => i.id === myPlayer.ideology)!,
-        coefficients: MOCK_IDEOLOGIES.find(i => i.id === myPlayer.ideology)!.coefficients as Record<string, number>
-    }
+    ? (() => {
+        let ideologyId: string | undefined;
+        let ideologyObj: MasterIdeology | undefined;
+
+        if (typeof myPlayer.ideology === 'string') {
+            ideologyId = myPlayer.ideology;
+        } else if (typeof myPlayer.ideology === 'object') {
+            // Assume object has id or ideologyId
+            const i = myPlayer.ideology as MasterIdeology & { ideologyId?: string };
+            ideologyId = i.id || i.ideologyId;
+            ideologyObj = { ...i, id: ideologyId || '' };
+        }
+
+        if (!ideologyId && !ideologyObj) return undefined;
+
+        const i = (ideologyId ? loadedIdeologies[ideologyId] : undefined) || ideologyObj;
+        return i ? { ...i, coefficients: i.coefficients as Record<string, number> } : undefined;
+      })()
     : undefined;
 
   return (
@@ -356,10 +424,11 @@ export default function GamePage() {
             onVote={handleVote}
             hasVoted={hasVoted}
             ideology={myIdeology}
-            playerName={myPlayer?.displayName}
         />
       )}
       
+
+
       {/* Host Controls */}
       {roomData.status === 'RESULT' && playersData[myUserId!]?.isHost && (
            <div className="fixed bottom-8 w-full flex justify-center z-50">
@@ -370,6 +439,15 @@ export default function GamePage() {
                  次のターンへ進む
                </button>
           </div>
+      )}
+
+      {/* Guest Waiting Message in RESULT */}
+      {roomData.status === 'RESULT' && !playersData[myUserId!]?.isHost && (
+           <div className="fixed bottom-8 w-full flex justify-center z-50 pointer-events-none">
+             <div className="bg-slate-800/80 backdrop-blur text-white px-8 py-4 rounded-full animate-pulse shadow-lg font-bold border border-white/20">
+               ホストが次のターンに進むのを待っています...
+             </div>
+           </div>
       )}
     </div>
   );
