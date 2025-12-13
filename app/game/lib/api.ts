@@ -22,7 +22,7 @@ export async function listRooms(): Promise<RoomSummary[]> {
   return data.rooms;
 }
 
-export async function createRoom(displayName: string, photoURL?: string): Promise<{ roomId: string, userId: string }> {
+export async function createRoom(displayName: string, photoURL?: string): Promise<{ roomId: string, playerId: string }> {
   const res = await fetch(API_BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -32,7 +32,7 @@ export async function createRoom(displayName: string, photoURL?: string): Promis
   return res.json();
 }
 
-export async function joinRoom(roomId: string, displayName: string, photoURL?: string): Promise<{ userId: string }> {
+export async function joinRoom(roomId: string, displayName: string, photoURL?: string): Promise<{ playerId: string }> {
   const res = await fetch(`${API_BASE}/${roomId}/join`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -46,7 +46,7 @@ export async function toggleReady(roomId: string, userId: string): Promise<boole
   const res = await fetch(`${API_BASE}/${roomId}/ready`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId }),
+    body: JSON.stringify({ playerId: userId }),
   });
   return res.ok;
 }
@@ -55,7 +55,7 @@ export async function startGame(roomId: string, userId: string) {
   const res = await fetch(`${API_BASE}/${roomId}/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId }),
+    body: JSON.stringify({ playerId: userId }),
   });
   if (!res.ok) throw new Error('Failed to start game');
   return res.json();
@@ -91,27 +91,27 @@ export async function votePolicy(roomId: string, userId: string, policyId: strin
   const res = await fetch(`${API_BASE}/${roomId}/vote`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, policyId }),
+    body: JSON.stringify({ playerId: userId, policyId }),
   });
   if (!res.ok) throw new Error('Failed to vote');
   return res.json();
 }
 
-export async function resolveVotes(roomId: string, userId: string): Promise<any> {
+export async function resolveVotes(roomId: string): Promise<any> {
   const res = await fetch(`${API_BASE}/${roomId}/resolve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId }),
+    body: JSON.stringify({}),
   });
   if (!res.ok) throw new Error('Failed to resolve votes');
   return res.json();
 }
 
-export async function nextTurn(roomId: string, userId: string): Promise<any> {
+export async function nextTurn(roomId: string): Promise<any> {
     const res = await fetch(`${API_BASE}/${roomId}/next`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({}),
     });
     if (!res.ok) throw new Error('Failed to proceed to next turn');
     return res.json();

@@ -45,10 +45,10 @@ export default function Home() {
       if (mode === 'create') {
         const res = await api.createRoom(displayName);
         roomId = res.roomId;
-        userId = res.userId;
+        userId = res.playerId;
       } else if (mode === 'join' && roomId) {
         const res = await api.joinRoom(roomId, displayName);
-        userId = res.userId;
+        userId = res.playerId;
       }
 
       if (roomId && userId) {

@@ -34,7 +34,7 @@ export interface MasterIdeology {
 }
 
 export interface PlayerData {
-  id: string; // Internal User ID (oderId)
+  id: string; // playerId (UUID)
   displayName: string;
   photoURL?: string;
   isHost: boolean;
@@ -42,6 +42,16 @@ export interface PlayerData {
   isPetitionUsed: boolean;
   ideology?: string; // ID of the ideology (Hidden to others in real API, but mock store holds it)
   currentVote?: string; // Policy ID (Hidden to others in real API)
+}
+
+export interface GameResult {
+  citySummary: string;
+  rankings: Array<{
+    playerId: string;
+    playerName: string;
+    score: number;
+    ideologyName: string;
+  }>;
 }
 
 export interface RoomData {
@@ -54,6 +64,7 @@ export interface RoomData {
   isCollapsed: boolean;
   currentPolicyIds: string[];
   deckIds: string[];
+  passedPolicyIds: string[];
   votes: Record<string, string>; // { userId: policyId }
   lastResult?: {
     passedPolicyId: string;
@@ -62,4 +73,5 @@ export interface RoomData {
     newsFlash: string;
     voteDetails: Record<string, string>;
   } | null;
+  gameResult?: GameResult;
 }

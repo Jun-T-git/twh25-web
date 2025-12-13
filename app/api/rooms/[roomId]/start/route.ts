@@ -5,13 +5,13 @@ export async function POST(request: Request, props: { params: Promise<{ roomId: 
   const params = await props.params;
   try {
     const { roomId } = params;
-    const { userId } = await request.json(); // Host check
+    const { playerId } = await request.json(); // Host check
 
     const room = mockStore.rooms[roomId];
     if (!room) return NextResponse.json({ error: 'Room not found' }, { status: 404 });
 
     // Host check
-    const player = mockStore.players[roomId]?.[userId];
+    const player = mockStore.players[roomId]?.[playerId];
     if (!player?.isHost) {
       return NextResponse.json({ error: 'Only host can start game' }, { status: 403 });
     }

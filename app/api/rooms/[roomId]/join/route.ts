@@ -24,11 +24,11 @@ export async function POST(request: Request, props: { params: Promise<{ roomId: 
     const body = await request.json();
     const { displayName, photoURL } = body;
 
-    const userId = nanoid();
+    const playerId = nanoid();
     
     // Init Guest Player
     const newPlayer: PlayerData = {
-      id: userId,
+      id: playerId,
       displayName: displayName || 'Guest',
       photoURL: photoURL || '',
       isHost: false,
@@ -40,9 +40,9 @@ export async function POST(request: Request, props: { params: Promise<{ roomId: 
 
     // Save
     if (!mockStore.players[roomId]) mockStore.players[roomId] = {};
-    mockStore.players[roomId][userId] = newPlayer;
+    mockStore.players[roomId][playerId] = newPlayer;
 
-    return NextResponse.json({ success: true, userId });
+    return NextResponse.json({ success: true, playerId });
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

@@ -28,11 +28,11 @@ export async function POST(request: Request) {
     }
 
     const roomId = nanoid(6);
-    const userId = nanoid();
+    const playerId = nanoid();
 
     // Init Room
     const newRoom: RoomData = {
-      hostId: userId,
+      hostId: playerId,
       status: 'LOBBY',
       turn: 1,
       maxTurns: 10,
@@ -41,13 +41,14 @@ export async function POST(request: Request) {
       isCollapsed: false,
       currentPolicyIds: [],
       deckIds: [],
+      passedPolicyIds: [],
       votes: {},
       lastResult: null
     };
 
     // Init Host Player
     const hostPlayer: PlayerData = {
-      id: userId,
+      id: playerId,
       displayName,
       photoURL: photoURL || '',
       isHost: true,
@@ -59,9 +60,9 @@ export async function POST(request: Request) {
 
     // Save to Mock Store
     mockStore.rooms[roomId] = newRoom;
-    mockStore.players[roomId] = { [userId]: hostPlayer };
+    mockStore.players[roomId] = { [playerId]: hostPlayer };
 
-    return NextResponse.json({ roomId, status: 'LOBBY', userId }); // Returning userId for convenience in mock
+    return NextResponse.json({ roomId, status: 'LOBBY', playerId }); // Returning playerId for convenience in mock
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

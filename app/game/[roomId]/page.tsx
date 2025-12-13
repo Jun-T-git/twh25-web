@@ -77,7 +77,7 @@ export default function GamePage() {
                 if (!isResolvingRef.current) {
                     isResolvingRef.current = true;
                     setTimeout(() => {
-                        api.resolveVotes(roomId, myUserId).catch(err => {
+                        api.resolveVotes(roomId).catch(err => {
                             console.error('Resolve failed:', err);
                             isResolvingRef.current = false;
                         });
@@ -95,8 +95,8 @@ export default function GamePage() {
       if (!joinName.trim()) return;
       try {
           const res = await api.joinRoom(roomId, joinName);
-          localStorage.setItem(`user_${roomId}`, res.userId);
-          setMyUserId(res.userId);
+          localStorage.setItem(`user_${roomId}`, res.playerId);
+          setMyUserId(res.playerId);
           setShowJoinModal(false);
       } catch (err) {
           console.error('Failed to join:', err);
@@ -136,7 +136,7 @@ export default function GamePage() {
       const botNames = ['ゆい', 'れん', '健太先生'];
       const randomName = botNames[Math.floor(Math.random() * botNames.length)];
       try {
-          const { userId: botId } = await api.joinRoom(roomId, `${randomName} (Bot)`);
+          const { playerId: botId } = await api.joinRoom(roomId, `${randomName} (Bot)`);
           await api.toggleReady(roomId, botId);
       } catch (err) {
           console.error(err);
@@ -309,10 +309,31 @@ export default function GamePage() {
             )}
 
             {roomData.status === 'FINISHED' && (
-                  <div className="mx-4 p-6 bg-white/90 backdrop-blur rounded-2xl shadow-xl border-4 border-indigo-400 text-center">
-                    <h1 className="text-3xl font-black text-indigo-900 mb-4">GAME SET</h1>
-                    <p className="mb-6">全てのターンが終了しました。</p>
-                    <button onClick={() => router.push('/')} className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-full shadow-lg hover:bg-indigo-500">
+                  <div className="mx-4 p-6 bg-white/95 backdrop-blur rounded-2xl shadow-xl border-4 border-indigo-500 text-center max-h-[80vh] overflow-y-auto">
+                    <h1 className="text-3xl font-black text-indigo-900 mb-2">GAME SET</h1>
+                    {roomData.gameResult && (
+                        <>
+                            <p className="text-lg text-indigo-700 font-bold mb-6">{roomData.gameResult.citySummary}</p>
+                            
+                            <div className="space-y-3 mb-8">
+                                {roomData.gameResult.rankings.map((r, i) => (
+                                   <div key={r.playerId} className={`flex items-center p-4 rounded-xl ${i===0 ? 'bg-yellow-100 border-2 border-yellow-400' : 'bg-slate-50 border border-slate-200'}`}>
+                                       <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-white mr-3 ${i===0 ? 'bg-yellow-500' : 'bg-slate-400'}`}>
+                                         {i+1}
+                                       </div>
+                                       <div className="flex-1 text-left">
+                                           <div className="font-bold text-slate-800">{r.playerName}</div>
+                                           <div className="text-xs text-slate-500">{r.ideologyName}</div>
+                                       </div>
+                                       <div className="text-xl font-black text-indigo-600">
+                                           {r.score}pt
+                                       </div>
+                                   </div> 
+                                ))}
+                            </div>
+                        </>
+                    )}
+                    <button onClick={() => router.push('/')} className="w-full px-6 py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-500 transition-transform active:scale-95">
                         トップへ戻る
                     </button>
                 </div>
@@ -331,9 +352,9 @@ export default function GamePage() {
       
       {/* Host Controls */}
       {roomData.status === 'RESULT' && playersData[myUserId!]?.isHost && (
-          <div className="fixed bottom-8 w-full flex justify-center z-50">
+           <div className="fixed bottom-8 w-full flex justify-center z-50">
                <button 
-                onClick={() => api.nextTurn(roomId!, myUserId!)}
+                onClick={() => api.nextTurn(roomId!)}
                 className="bg-sky-500 text-white font-bold py-3 px-8 rounded-full shadow-xl hover:bg-sky-400 transition-transform active:scale-95"
                >
                  次のターンへ進む

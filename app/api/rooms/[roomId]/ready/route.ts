@@ -5,14 +5,14 @@ export async function POST(request: Request, props: { params: Promise<{ roomId: 
   const params = await props.params;
   try {
     const { roomId } = params;
-    const { userId } = await request.json();
+    const { playerId } = await request.json();
 
     const room = mockStore.rooms[roomId];
     if (!room || room.status !== 'LOBBY') {
       return NextResponse.json({ error: 'Invalid room state' }, { status: 400 });
     }
 
-    const player = mockStore.players[roomId]?.[userId];
+    const player = mockStore.players[roomId]?.[playerId];
     if (!player) {
       return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     }

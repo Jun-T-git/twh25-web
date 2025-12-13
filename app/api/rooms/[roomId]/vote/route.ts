@@ -5,7 +5,7 @@ export async function POST(request: Request, props: { params: Promise<{ roomId: 
   const params = await props.params;
   try {
     const { roomId } = params;
-    const { userId, policyId } = await request.json();
+    const { playerId, policyId } = await request.json();
 
     const room = mockStore.rooms[roomId];
     if (!room || room.status !== 'VOTING') {
@@ -17,10 +17,10 @@ export async function POST(request: Request, props: { params: Promise<{ roomId: 
     }
 
     // Record Vote
-    if (mockStore.players[roomId]?.[userId]) {
-        mockStore.players[roomId][userId].currentVote = policyId;
+    if (mockStore.players[roomId]?.[playerId]) {
+        mockStore.players[roomId][playerId].currentVote = policyId;
     }
-    room.votes[userId] = policyId;
+    room.votes[playerId] = policyId;
 
     return NextResponse.json({ success: true });
   } catch (error) {

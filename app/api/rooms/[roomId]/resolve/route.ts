@@ -7,12 +7,12 @@ export async function POST(request: Request, props: { params: Promise<{ roomId: 
   const params = await props.params;
   try {
     const { roomId } = params;
-    const { userId } = await request.json();
+    // const { userId } = await request.json(); // No auth in fixed schema
 
     const room = mockStore.rooms[roomId];
-    // Check Host & State
-    const player = mockStore.players[roomId]?.[userId];
-    if (!player?.isHost) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Check State
+    // const player = mockStore.players[roomId]?.[userId];
+    // if (!player?.isHost) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     if (room.status !== 'VOTING') return NextResponse.json({ error: 'Invalid state' }, { status: 400 });
 
     // Check all voted
@@ -58,6 +58,9 @@ export async function POST(request: Request, props: { params: Promise<{ roomId: 
     });
 
     room.cityParams = newCityParams;
+    // Add to passedPolicyIds history
+    if (!room.passedPolicyIds) room.passedPolicyIds = [];
+    room.passedPolicyIds.push(winnerId);
     
     // 3. Set Result
     room.lastResult = {
