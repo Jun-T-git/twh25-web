@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
 import { AnimatePresence, motion } from 'framer-motion';
-import { IdCard } from 'lucide-react';
-import { useState } from 'react';
+import { IdCard, Lightbulb, Target } from 'lucide-react';
+import { useRef, useState } from 'react';
 
 interface GameFooterProps {
   onVote: () => void;
@@ -11,10 +11,13 @@ interface GameFooterProps {
     description: string;
     coefficients?: Record<string, number>;
   };
+  defaultOpen?: boolean;
 }
 
-export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
-  const [isRevealingIdentity, setIsRevealingIdentity] = useState(false);
+export function GameFooter({ onVote, hasVoted, ideology, defaultOpen = false }: GameFooterProps) {
+  const [isRevealingIdentity, setIsRevealingIdentity] = useState(defaultOpen);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [origin, setOrigin] = useState({ x: 0, y: 0 });
 
   // Calculate Radar Chart Points
   const categories = [
@@ -34,10 +37,10 @@ export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
 
     return categories.map((cat, i) => {
       const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
-      // Map -2..+2 to 0..1 scale relative to radius.
-      // -2 => 0 (center), 0 => 0.5, +2 => 1.0 (edge)
+      // Map -3..+3 to 0..1 scale relative to radius.
+      // -3 => 0 (center), 0 => 0.5, +3 => 1.0 (edge)
       const val = coefficients[cat.key] ?? 0;
-      const normalized = (Math.max(-2, Math.min(2, val)) + 2) / 4;
+      const normalized = (Math.max(-3, Math.min(3, val)) + 3) / 6;
       const r = normalized * radius;
       const x = centerX + r * Math.cos(angle);
       const y = centerY + r * Math.sin(angle);
@@ -88,7 +91,7 @@ export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
                     <IdCard size={18} className="text-sky-500" />
                 </div>
                 <span className="text-[10px] font-bold text-gray-700 leading-tight">
-                    あなたの思想
+                    あなたの思想<br/>(勝利条件)
                 </span>
             </button>
           </div>
@@ -130,95 +133,122 @@ export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
       {/* Secret Identity Modal Overlay */}
       <AnimatePresence>
         {isRevealingIdentity && ideology && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-auto p-6 bg-black/50 backdrop-blur-sm"
-            onClick={() => setIsRevealingIdentity(false)}
-          >
-             <div className="bg-white p-6 rounded-3xl shadow-2xl text-center max-w-sm w-full border-4 border-sky-100 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <h3 className="text-sky-900 font-bold text-xl mb-4 border-b pb-2 border-sky-50">㊙️ あなたの思想</h3>
-                <div className="mb-4">
-                  <span className="inline-block bg-sky-100 text-sky-800 text-lg font-bold px-4 py-1 rounded-full mb-2">
-                    {ideology.name}
-                  </span>
-                  <p className="text-gray-700 text-sm leading-relaxed mb-4">
-                      {ideology.description}
-                  </p>
-                  
-                  {/* Radar Chart */}
-                  {ideology.coefficients && (
-                      <div className="relative w-full aspect-square max-w-[240px] mx-auto mb-2">
-                          <svg viewBox="0 0 200 200" className="w-full h-full">
-                              {/* Grid Circles */}
-                              <circle cx="100" cy="100" r="16.25" fill="none" stroke="#e2e8f0" strokeWidth="1" /> {/* -1.0 */}
-                              <circle cx="100" cy="100" r="32.5" fill="none" stroke="#e2e8f0" strokeWidth="1" /> {/* 0.0 */}
-                              <circle cx="100" cy="100" r="48.75" fill="none" stroke="#e2e8f0" strokeWidth="1" /> {/* +1.0 */}
-                              <circle cx="100" cy="100" r="65" fill="none" stroke="#cbd5e1" strokeWidth="1" /> {/* +2.0 */}
-                              
-                              {/* Axis Lines */}
-                              {categories.map((_, i) => {
-                                  const { x1, y1, x2, y2 } = getAxisLine(i);
-                                  return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#cbd5e1" strokeWidth="1" />;
-                              })}
-
-                              {/* Data Polygon */}
-                                <polygon 
-                                  points={getPoints(ideology.coefficients)} 
-                                  fill="rgba(14, 165, 233, 0.4)" 
-                                  stroke="#0ea5e9" 
-                                  strokeWidth="2" 
-                                />
-                                
-                              {categories.map((cat, i) => {
-                                  const { x, y, anchor } = getLabelPos(i);
-                                  const val = ideology.coefficients?.[cat.key] ?? 0;
-                                  const valText = `x${val}`;
-                                  // Color logic: >1 = Green, <0 = Red, 0-1 = Gray
-                                  const valColor = val > 1 ? '#16a34a' : (val < 0 ? '#ef4444' : '#64748b');
-                                  const fontWeight = Math.abs(val) > 1 ? '900' : 'bold';
-
-                                  return (
-                                    <g key={cat.key}>
-                                        <text 
-                                            x={x} y={y - 4} 
-                                            textAnchor={anchor} 
-                                            dominantBaseline="auto" 
-                                            className="text-[10px] fill-sky-900 font-bold"
-                                            fill={valColor}
-                                            style={{ fontSize: '10px' }}
-                                        >
-                                            {cat.label}
-                                        </text>
-                                        <text 
-                                            x={x} y={y + 6}
-                                            textAnchor={anchor} 
-                                            dominantBaseline="auto" 
-                                            fill={valColor}
-                                            style={{ fontSize: '10px', fontWeight }}
-                                        >
-                                            {valText}
-                                        </text>
-                                    </g>
-                                  );
-                              })}
-                          </svg>
-                      </div>
-                  )}
-
-                </div>
-                <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded">
-                  ※この情報は他のプレイヤーには公開されません
-                </div>
-                <button 
-                  onClick={() => setIsRevealingIdentity(false)}
-                  className="mt-4 w-full py-3 bg-sky-50 text-sky-600 font-bold rounded-lg hover:bg-sky-100"
+          <>
+            {/* Backdrop */}
+            <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
+               onClick={() => setIsRevealingIdentity(false)}
+            />
+            {/* Modal Content */}
+            <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.1, x: -120, y: 350 }}
+                    animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.1, x: -120, y: 350 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                    className="bg-white p-6 rounded-3xl shadow-2xl text-center max-w-sm w-full border-4 border-sky-100 max-h-[90vh] overflow-y-auto pointer-events-auto mx-4"
+                    onClick={e => e.stopPropagation()}
                 >
-                    閉じる
-                </button>
-             </div>
-          </motion.div>
+                    <h3 className="text-sky-900 font-bold text-xl mb-4 border-b pb-2 border-sky-50">
+                        <Target className="inline-block mr-2 w-6 h-6 text-sky-500 mb-0.5" />
+                        あなたの思想 (勝利条件)
+                    </h3>
+                    <div className="mb-4">
+                    <span className="inline-block bg-sky-100 text-sky-800 text-lg font-bold px-4 py-1 rounded-full mb-2">
+                        {ideology.name}
+                    </span>
+                    <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                        {ideology.description}
+                    </p>
+                    
+                    {/* Radar Chart */}
+                    {ideology.coefficients && (
+                        <div className="relative w-full aspect-square max-w-[240px] mx-auto mb-2">
+                            <svg viewBox="0 0 200 200" className="w-full h-full">
+                                {/* Grid Circles */}
+                                <circle cx="100" cy="100" r="16.25" fill="none" stroke="#e2e8f0" strokeWidth="1" /> {/* -1.5 */}
+                                <circle cx="100" cy="100" r="32.5" fill="none" stroke="#e2e8f0" strokeWidth="1" /> {/* 0.0 */}
+                                <circle cx="100" cy="100" r="48.75" fill="none" stroke="#e2e8f0" strokeWidth="1" /> {/* +1.5 */}
+                                <circle cx="100" cy="100" r="65" fill="none" stroke="#cbd5e1" strokeWidth="1" /> {/* +3.0 */}
+                                
+                                {/* Axis Lines */}
+                                {categories.map((_, i) => {
+                                    const { x1, y1, x2, y2 } = getAxisLine(i);
+                                    return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#cbd5e1" strokeWidth="1" />;
+                                })}
+
+                                {/* Data Polygon */}
+                                    <polygon 
+                                    points={getPoints(ideology.coefficients)} 
+                                    fill="rgba(14, 165, 233, 0.4)" 
+                                    stroke="#0ea5e9" 
+                                    strokeWidth="2" 
+                                    />
+                                    
+                                {categories.map((cat, i) => {
+                                    const { x, y, anchor } = getLabelPos(i);
+                                    const val = ideology.coefficients?.[cat.key] ?? 0;
+                                    const valText = `x${val}`;
+                                    // Color logic: >1 = Green, <0 = Red, 0-1 = Gray
+                                    const valColor = val > 1 ? '#16a34a' : (val < 0 ? '#ef4444' : '#64748b');
+                                    const fontWeight = Math.abs(val) > 1 ? '900' : 'bold';
+
+                                    return (
+                                        <g key={cat.key}>
+                                            <text 
+                                                x={x} y={y - 4} 
+                                                textAnchor={anchor} 
+                                                dominantBaseline="auto" 
+                                                className="text-[10px] fill-sky-900 font-bold"
+                                                fill={valColor}
+                                                style={{ fontSize: '10px' }}
+                                            >
+                                                {cat.label}
+                                            </text>
+                                            <text 
+                                                x={x} y={y + 6}
+                                                textAnchor={anchor} 
+                                                dominantBaseline="auto" 
+                                                fill={valColor}
+                                                style={{ fontSize: '10px', fontWeight }}
+                                            >
+                                                {valText}
+                                            </text>
+                                        </g>
+                                    );
+                                })}
+                            </svg>
+                        </div>
+                    )}
+
+                    </div>
+                    
+                    <div className="bg-sky-50 p-3 rounded-xl mb-4 text-left border border-sky-100 shadow-sm">
+                        <p className="text-sm font-bold text-sky-800 mb-1 flex items-center">
+                            <Lightbulb className="w-4 h-4 mr-2 text-yellow-500 fill-yellow-500" />
+                            勝利へのヒント
+                        </p>
+                        <p className="text-xs text-sky-700 leading-relaxed">
+                            <span className="font-bold text-green-600">緑色 (プラス)</span> の項目が伸びるような政策を選びましょう。<br/>
+                            逆に <span className="font-bold text-red-500">赤色 (マイナス)</span> の項目は下げることでスコアが上がります！
+                        </p>
+                    </div>
+
+                    <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded">
+                    ※この情報は他のプレイヤーには公開されません
+                    </div>
+                    <button 
+                    onClick={() => setIsRevealingIdentity(false)}
+                    className="mt-4 w-full py-3 bg-sky-50 text-sky-600 font-bold rounded-lg hover:bg-sky-100"
+                    >
+                        閉じる
+                    </button>
+                </motion.div>
+            </div>
+          </>
         )}
       </AnimatePresence>
     </>

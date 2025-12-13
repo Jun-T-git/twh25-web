@@ -403,6 +403,7 @@ export default function GamePage() {
             onVote={handleVote}
             hasVoted={hasVoted}
             ideology={myIdeology}
+            defaultOpen={roomData.turn === 1}
         />
       )}
       
