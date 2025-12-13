@@ -10,7 +10,6 @@ import { GameFooter } from '../_components/GameFooter';
 import { GameHeader } from '../_components/GameHeader';
 import { PlayerStatus } from '../_components/PlayerStatus';
 import { PolicyCardCarousel } from '../_components/PolicyCardCarousel';
-import { SinglePolicyCard } from '../_components/SinglePolicyCard';
 import * as api from '../lib/api';
 import { CityStats, Player, PolicyCard } from '../types';
 
@@ -31,6 +30,7 @@ export default function GamePage() {
   const [loadedIdeologies, setLoadedIdeologies] = useState<Record<string, MasterIdeology>>({});
   
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
+  const [selectedPassedPolicyIndex, setSelectedPassedPolicyIndex] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -152,6 +152,16 @@ export default function GamePage() {
     fetchIdeologies();
   }, [playersData, loadedIdeologies]);
 
+  // 5. Auto-select Passed Policy in RESULT
+  useEffect(() => {
+    if (roomData?.status === 'RESULT' && roomData.lastResult?.passedPolicyId && roomData.currentPolicyIds) {
+        const index = roomData.currentPolicyIds.indexOf(roomData.lastResult.passedPolicyId);
+        if (index >= 0) {
+            setSelectedCardIndex(index);
+        }
+    }
+  }, [roomData?.status, roomData?.lastResult?.passedPolicyId, roomData?.currentPolicyIds]);
+
 
 
   const handleJoinSubmit = async (e: React.FormEvent) => {
@@ -268,6 +278,16 @@ export default function GamePage() {
       }
   });
 
+  const passedCards: PolicyCard[] = (roomData.passedPolicyIds || []).map(id => {
+      const master = loadedPolicies[id];
+      return {
+          id: id,
+          title: master?.title || 'Unknown Policy',
+          description: master?.description || 'Loading...',
+          imageUrl: undefined
+      }
+  });
+
   /* Player Ideology Resolution */
   const myPlayer = playersData[myUserId || ''];
   const myIdeology = myPlayer?.ideology 
@@ -371,64 +391,62 @@ export default function GamePage() {
                 </div>
             )}
 
-            {roomData.status === 'VOTING' && (
-                <PolicyCardCarousel
-                    cards={currentCards}
-                    selectedIndex={selectedCardIndex}
-                    onSelect={setSelectedCardIndex}
-                />
-            )}
-            
-            {roomData.status === 'RESULT' && roomData.lastResult && (
-                <div className="flex-1 flex flex-col items-center justify-center min-h-[500px] animate-in fade-in zoom-in duration-500">
-                    {(() => {
-                        const policyId = roomData.lastResult!.passedPolicyId;
-                        const policy = loadedPolicies[policyId];
-                        const index = roomData.currentPolicyIds?.indexOf(policyId) ?? 0;
-                        const hasVotedForThis = myUserId && roomData.lastResult!.voteDetails?.[myUserId] === policyId;
-                        
-                        // Construct display card
-                        const displayCard: PolicyCard = {
-                            id: policyId,
-                            title: policy?.title || roomData.lastResult!.passedPolicyTitle,
-                            description: policy?.description || '...',
-                            imageUrl: undefined
-                        };
+            {/* Unified Policy Carousel for Voting & Result to ensure seamless transition */}
+            {(roomData.status === 'VOTING' || (roomData.status === 'RESULT' && roomData.lastResult)) && (
+                <div className="flex-1 flex flex-col justify-center relative w-full">
+                    <PolicyCardCarousel
+                        cards={currentCards}
+                        selectedIndex={selectedCardIndex}
+                        onSelect={setSelectedCardIndex}
+                        getBadge={(card, index, isActive) => {
+                            if (roomData.status !== 'RESULT' || !roomData.lastResult) return undefined;
 
-                        return (
-                            <>
-                                <div className="mb-6 relative">
-                                    <SinglePolicyCard 
-                                        card={displayCard}
-                                        isActive={true}
-                                        fallbackImageIndex={index < 0 ? 0 : index}
-                                        badge={hasVotedForThis ? (
-                                            <div className="bg-sky-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md border border-white/20">
-                                                あなたが投票
-                                            </div>
-                                        ) : undefined}
-                                        imageOverlay={
-                                            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                                                <div className="border-[6px] border-red-600 text-red-600 font-black text-6xl px-6 py-2 rounded-xl -rotate-12 opacity-90 shadow-lg bg-white/20 backdrop-blur-sm tracking-widest">
-                                                    可決
-                                                </div>
-                                            </div>
-                                        }
-                                        className="hover:scale-105 transition-transform duration-500 shadow-2xl"
-                                    />
+                            const myVote = myUserId && roomData.lastResult.voteDetails?.[myUserId] === card.id;
+                            
+                            return (
+                                <div className="flex flex-col gap-1 items-end">
+                                    {myVote && (
+                                         <span className="bg-sky-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md border border-white/20">
+                                            あなたが投票
+                                         </span>
+                                    )}
                                 </div>
-                                
-                                <div className="mx-4 p-5 bg-yellow-50/95 backdrop-blur rounded-xl border-2 border-yellow-200 max-w-md shadow-lg relative">
-                                    <div className="absolute -top-3 left-4 bg-yellow-400 text-yellow-900 text-xs font-black px-2 py-0.5 rounded shadow-sm">
-                                        本日のニュース！
+                            );
+                        }}
+                        getOverlay={(card, index, isActive) => {
+                             if (roomData.status !== 'RESULT' || !roomData.lastResult) return undefined;
+                             const isPassed = card.id === roomData.lastResult.passedPolicyId;
+                             
+                             if (isPassed) {
+                                return (
+                                    <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                                        <div className="border-[6px] border-red-600 text-red-600 font-black text-6xl px-6 py-2 rounded-xl -rotate-12 opacity-90 shadow-lg bg-white/20 backdrop-blur-sm tracking-widest animate-in fade-in zoom-in duration-300">
+                                            可決
+                                        </div>
                                     </div>
-                                    <p className="text-gray-800 font-medium leading-relaxed mt-1 text-left">
-                                        {roomData.lastResult!.newsFlash}
-                                    </p>
+                                );
+                             } else {
+                                // Gray out rejected cards
+                                return (
+                                    <div className="absolute inset-0 bg-slate-500/30 backdrop-grayscale z-0 pointer-events-none transition-all duration-500" />
+                                );
+                             }
+                        }}
+                    />
+                    
+                    {/* Result News Flash - Animated In */}
+                    {roomData.status === 'RESULT' && roomData.lastResult && (
+                         <div className="flex justify-center w-full mt-4">
+                            <div className="mx-4 p-5 bg-yellow-50/95 backdrop-blur rounded-xl border-2 border-yellow-200 w-full max-w-md shadow-lg relative z-20 animate-in slide-in-from-bottom-4 duration-500">
+                                <div className="absolute -top-3 left-4 bg-yellow-400 text-yellow-900 text-xs font-black px-2 py-0.5 rounded shadow-sm">
+                                    本日のニュース！
                                 </div>
-                            </>
-                        );
-                    })()}
+                                <p className="text-gray-800 font-medium leading-relaxed mt-1 text-left">
+                                    {roomData.lastResult.newsFlash}
+                                </p>
+                            </div>
+                         </div>
+                    )}
                 </div>
             )}
 
@@ -496,51 +514,60 @@ export default function GamePage() {
                             </div>
 
                             {/* Passed Policies Timeline */}
-                            <div className="text-left">
-                            <h3 className="text-lg font-bold text-sky-900 mb-4 flex items-center gap-2">
-                                <History className="w-6 h-6 text-sky-600" />
-                                <span>可決された政策</span>
-                            </h3>
-                            <div className="space-y-4">
-                                {(roomData.passedPolicyIds || []).length > 0 ? (
-                                    (roomData.passedPolicyIds || []).map((id, index) => {
-                                        const policy = loadedPolicies[id];
-                                        if (!policy) return null;
-                                        
-                                        return (
-                                            <div key={id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-xs font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded">{index + 1}ターン目</span>
-                                                </div>
-                                                <h4 className="font-bold text-gray-800 text-lg leading-snug mb-2">{policy.title}</h4>
-                                                <p className="text-sm text-gray-600 mb-3">{policy.description}</p>
-                                                
-                                                <div className="flex flex-wrap gap-2">
-                                                    {(['economy', 'welfare', 'education', 'security', 'humanRights', 'environment'] as const).map((key) => {
-                                                        const val = policy.effects?.[key];
-                                                        if (!val) return null;
-                                                        
-                                                        const label = PARAM_LABELS[key];
-                                                        const style = PARAM_STYLES[key];
-                                                        return (
-                                                            <span key={key} className={`text-xs font-bold px-2 py-1 rounded border flex items-center gap-0.5 ${style}`}>
-                                                                {label}
-                                                                {val > 0 ? (
-                                                                    <ChevronsUp size={16} strokeWidth={3} className="text-green-600" />
-                                                                ) : (
-                                                                    <ChevronsDown size={16} strokeWidth={3} className="text-red-500" />
-                                                                )}
-                                                            </span>
-                                                        );
-                                                    })}
-                                                </div>
+                            <div className="text-left w-full overflow-hidden">
+                              <h3 className="text-lg font-bold text-sky-900 mb-4 flex items-center gap-2 pl-4">
+                                  <History className="w-6 h-6 text-sky-600" />
+                                  <span>可決された政策</span>
+                              </h3>
+                              
+                              {(roomData.passedPolicyIds || []).length > 0 ? (
+                                <PolicyCardCarousel 
+                                    cards={passedCards}
+                                    selectedIndex={selectedPassedPolicyIndex}
+                                    onSelect={setSelectedPassedPolicyIndex}
+                                    getBadge={(card, index) => (
+                                         <div className="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md border border-white/20">
+                                             {index + 1}ターン目
+                                         </div>
+                                    )}
+                                    getOverlay={() => (
+                                        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                                            <div className="border-[6px] border-red-600 text-red-600 font-black text-6xl px-6 py-2 rounded-xl -rotate-12 opacity-90 shadow-lg bg-white/20 backdrop-blur-sm tracking-widest">
+                                                可決
                                             </div>
-                                        );
-                                    })
-                                ) : (
-                                    <p className="text-gray-500">採用された政策はありません。</p>
-                                )}
-                            </div>
+                                        </div>
+                                    )}
+                                />
+                              ) : (
+                                <div className="px-4 text-gray-500">採用された政策はありません。</div>
+                              )}
+                              
+                              {/* Display Effects of Selected Passed Policy */}
+                              {passedCards.length > 0 && loadedPolicies[passedCards[selectedPassedPolicyIndex]?.id] && (
+                                  <div className="mt-4 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 mx-4">
+                                      <div className="text-sm font-bold text-slate-500 mb-2">政策効果:</div>
+                                      <div className="flex flex-wrap gap-2 justify-center">
+                                          {(['economy', 'welfare', 'education', 'security', 'humanRights', 'environment'] as const).map((key) => {
+                                              const val = loadedPolicies[passedCards[selectedPassedPolicyIndex].id].effects?.[key];
+                                              if (!val) return null;
+                                              
+                                              const label = PARAM_LABELS[key];
+                                              const style = PARAM_STYLES[key];
+                                              return (
+                                                  <span key={key} className={`text-xs font-bold px-2 py-1 rounded border flex items-center gap-0.5 ${style}`}>
+                                                      {label}
+                                                      {val > 0 ? (
+                                                          <ChevronsUp size={16} strokeWidth={3} className="text-green-600" />
+                                                      ) : (
+                                                          <ChevronsDown size={16} strokeWidth={3} className="text-red-500" />
+                                                      )}
+                                                  </span>
+                                              );
+                                          })}
+                                      </div>
+                                  </div>
+                              )}
+
                             </div>
                     </div>
 
