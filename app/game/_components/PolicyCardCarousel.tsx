@@ -1,9 +1,6 @@
-
-import { clsx } from 'clsx';
-import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { useRef } from 'react';
 import { PolicyCard } from '../types';
+import { SinglePolicyCard } from './SinglePolicyCard';
 
 interface PolicyCardCarouselProps {
   cards: PolicyCard[];
@@ -27,41 +24,18 @@ export function PolicyCardCarousel({ cards, selectedIndex, onSelect }: PolicyCar
         {cards.map((card, index) => {
           const isActive = index === selectedIndex;
           return (
-            <motion.div
-              key={card.id}
-              className={clsx(
-                "snap-center shrink-0 w-[280px] h-[400px] rounded-xl bg-white opacity-95 shadow-xl flex flex-col overflow-hidden border transition-all duration-300 cursor-pointer",
-                isActive ? "border-sky-400 ring-2 ring-sky-400 scale-100 shadow-2xl z-10" : "border-gray-100 scale-95"
-              )}
-              onClick={() => onSelect(index)}
-              whileTap={{ scale: 0.98 }}
-            >
-              {/* Card Image Area */}
-              <div className="h-1/2 bg-gray-100 flex items-center justify-center relative overflow-hidden">
-                {/* Replaced img with Image component */}
-                <Image
-                    src={card.imageUrl ?? `/images/policy-0${index + 1}.png`}
-                    alt={card.title}
-                    fill
-                    className="object-cover"
-                />
-                {isActive && (
-                    <div className="absolute top-3 right-3 bg-sky-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
+            <SinglePolicyCard
+                key={card.id}
+                card={card}
+                isActive={isActive}
+                onClick={() => onSelect(index)}
+                fallbackImageIndex={index}
+                badge={isActive ? (
+                    <div className="bg-sky-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
                         選択中
                     </div>
-                )}
-              </div>
-
-              {/* Card Content */}
-              <div className="h-1/2 p-6 flex flex-col">
-                <h3 className={clsx("text-xl font-bold mb-2", isActive ? "text-gray-900" : "text-gray-600")}>
-                  {card.title}
-                </h3>
-                <p className="text-sm text-gray-500 leading-relaxed overflow-y-auto">
-                  {card.description}
-                </p>
-              </div>
-            </motion.div>
+                ) : undefined}
+            />
           );
         })}
       </div>

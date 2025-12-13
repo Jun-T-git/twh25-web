@@ -10,6 +10,7 @@ import { GameFooter } from '../_components/GameFooter';
 import { GameHeader } from '../_components/GameHeader';
 import { PlayerStatus } from '../_components/PlayerStatus';
 import { PolicyCardCarousel } from '../_components/PolicyCardCarousel';
+import { SinglePolicyCard } from '../_components/SinglePolicyCard';
 import * as api from '../lib/api';
 import { CityStats, Player, PolicyCard } from '../types';
 
@@ -379,13 +380,55 @@ export default function GamePage() {
             )}
             
             {roomData.status === 'RESULT' && roomData.lastResult && (
-                <div className="mx-4 p-6 bg-white/90 backdrop-blur rounded-2xl shadow-xl border-4 border-yellow-400 text-center animate-in fade-in zoom-in duration-500">
-                    <h2 className="text-lg font-bold text-gray-500 mb-2">可決された政策</h2>
-                    <h1 className="text-2xl font-black text-gray-800 mb-4">{roomData.lastResult.passedPolicyTitle}</h1>
-                    <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
-                        <p className="font-bold text-yellow-800 text-sm mb-1">NEWS FLASH</p>
-                        <p className="text-gray-700 leading-relaxed">{roomData.lastResult.newsFlash}</p>
-                    </div>
+                <div className="flex-1 flex flex-col items-center justify-center min-h-[500px] animate-in fade-in zoom-in duration-500">
+                    {(() => {
+                        const policyId = roomData.lastResult!.passedPolicyId;
+                        const policy = loadedPolicies[policyId];
+                        const index = roomData.currentPolicyIds?.indexOf(policyId) ?? 0;
+                        const hasVotedForThis = myUserId && roomData.lastResult!.voteDetails?.[myUserId] === policyId;
+                        
+                        // Construct display card
+                        const displayCard: PolicyCard = {
+                            id: policyId,
+                            title: policy?.title || roomData.lastResult!.passedPolicyTitle,
+                            description: policy?.description || '...',
+                            imageUrl: undefined
+                        };
+
+                        return (
+                            <>
+                                <div className="mb-6 relative">
+                                    <SinglePolicyCard 
+                                        card={displayCard}
+                                        isActive={true}
+                                        fallbackImageIndex={index < 0 ? 0 : index}
+                                        badge={hasVotedForThis ? (
+                                            <div className="bg-sky-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md border border-white/20">
+                                                あなたが投票
+                                            </div>
+                                        ) : undefined}
+                                        imageOverlay={
+                                            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                                                <div className="border-[6px] border-red-600 text-red-600 font-black text-6xl px-6 py-2 rounded-xl -rotate-12 opacity-90 shadow-lg bg-white/20 backdrop-blur-sm tracking-widest">
+                                                    可決
+                                                </div>
+                                            </div>
+                                        }
+                                        className="hover:scale-105 transition-transform duration-500 shadow-2xl"
+                                    />
+                                </div>
+                                
+                                <div className="mx-4 p-5 bg-yellow-50/95 backdrop-blur rounded-xl border-2 border-yellow-200 max-w-md shadow-lg relative">
+                                    <div className="absolute -top-3 left-4 bg-yellow-400 text-yellow-900 text-xs font-black px-2 py-0.5 rounded shadow-sm">
+                                        本日のニュース！
+                                    </div>
+                                    <p className="text-gray-800 font-medium leading-relaxed mt-1 text-left">
+                                        {roomData.lastResult!.newsFlash}
+                                    </p>
+                                </div>
+                            </>
+                        );
+                    })()}
                 </div>
             )}
 
