@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { GameFooter } from './_components/GameFooter';
 import { GameHeader } from './_components/GameHeader';
@@ -34,6 +35,7 @@ const CARDS: PolicyCard[] = [
   },
 ];
 
+
 export default function GamePage() {
   // TODO: Sync current turn number from server state
   const [turn] = useState(3);
@@ -63,19 +65,21 @@ export default function GamePage() {
   };
 
   return (
-    <div className="min-h-screen bg-sky-200 flex flex-col relative overflow-hidden font-sans text-gray-900 pb-24">
-      {/* Background Image Layer */}
-      <div
-        className="absolute inset-0 z-0 opacity-80"
-        style={{
-          // TODO: Dynamic background based on city state (e.g., cleaner if environment is high)
-          backgroundImage: 'url("https://images.unsplash.com/photo-1624467167663-74b6df525be4?q=80&w=1000&auto=format&fit=crop")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center bottom',
-        }}
-      />
+    <div className="min-h-screen flex flex-col relative overflow-hidden font-sans text-gray-900 pb-24">
+      {/* Optimized Background Image Layer */}
+      <div className="absolute inset-0 z-0">
+         <Image 
+           src="/images/game-bg.jpg"
+           alt="City Background"
+           fill
+           priority
+           className="object-cover object-bottom opacity-80"
+           quality={80}
+         />
+      </div>
+      
       {/* Overlay Gradient for readability */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-white/70 via-white/30 to-white/10 pointer-events-none" />
+      <div className="absolute inset-0 z-0 pointer-events-none" />
 
       <main className="relative z-10 flex flex-col h-full overflow-y-auto no-scrollbar">
         <GameHeader

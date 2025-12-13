@@ -16,7 +16,7 @@ export function PolicyCardCarousel({ cards, selectedIndex, onSelect }: PolicyCar
   return (
     <div className="flex-1 flex flex-col justify-center py-4 overflow-hidden relative">
        {/* Background decoration */}
-       <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-gray-50 via-white to-gray-50" />
+       <div className="absolute inset-0 pointer-events-none" />
 
       <div 
         className="flex gap-4 overflow-x-auto snap-x snap-mandatory px-8 pb-8 pt-4 no-scrollbar items-center z-10"
@@ -29,7 +29,7 @@ export function PolicyCardCarousel({ cards, selectedIndex, onSelect }: PolicyCar
               key={card.id}
               className={clsx(
                 "snap-center shrink-0 w-[280px] h-[400px] rounded-2xl bg-white shadow-xl flex flex-col overflow-hidden border transition-all duration-300 cursor-pointer",
-                isActive ? "border-sky-400 ring-2 ring-sky-100 scale-100 shadow-2xl z-10" : "border-gray-100 scale-95 opacity-70 grayscale-[30%]"
+                isActive ? "border-sky-400 ring-2 ring-sky-100 scale-100 shadow-2xl z-10" : "border-gray-100 scale-95"
               )}
               onClick={() => onSelect(index)}
               whileTap={{ scale: 0.98 }}

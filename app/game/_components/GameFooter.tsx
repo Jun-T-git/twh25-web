@@ -19,25 +19,21 @@ export function GameFooter({ onVote, hasVoted, myWinCondition }: GameFooterProps
           {/* Secret Identity Button (ID Card Style) */}
           <div className="flex flex-col gap-1 items-center">
             <div className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-t-md w-full text-center border-x border-t border-blue-200">
-                学ID
+                ユーザID
             </div>
             <button
                 className={clsx(
                 "w-24 h-16 rounded-b-md rounded-tr-md bg-white border-2 border-blue-200 shadow-lg flex flex-col items-center justify-center p-1 transition-transform active:scale-95",
                 isRevealingIdentity ? "bg-blue-50" : ""
                 )}
-                onPointerDown={() => setIsRevealingIdentity(true)}
-                onPointerUp={() => setIsRevealingIdentity(false)}
-                onPointerLeave={() => setIsRevealingIdentity(false)}
-                onTouchStart={() => setIsRevealingIdentity(true)}
-                onTouchEnd={() => setIsRevealingIdentity(false)}
+                onClick={() => setIsRevealingIdentity(true)}
             >
                 <div className="w-8 h-8 rounded-full bg-gray-200 mb-1 flex items-center justify-center">
                     <IdCard size={16} className="text-gray-400" />
                 </div>
                 <div className="flex flex-col items-center leading-none">
                     <span className="text-[10px] font-bold text-gray-800">自分の思想</span>
-                    <span className="text-[8px] text-gray-500 scale-90">(長押しで確認)</span>
+                    <span className="text-[8px] text-gray-500 scale-90">(タップで確認)</span>
                 </div>
             </button>
           </div>
@@ -74,7 +70,8 @@ export function GameFooter({ onVote, hasVoted, myWinCondition }: GameFooterProps
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none p-6 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-auto p-6 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsRevealingIdentity(false)}
           >
              <div className="bg-white p-6 rounded-3xl shadow-2xl text-center max-w-xs w-full border-4 border-indigo-100">
                 <h3 className="text-indigo-900 font-bold text-xl mb-4 border-b pb-2 border-indigo-50">㊙️ 勝利条件</h3>
