@@ -48,7 +48,7 @@ export function PlayerStatus({ players }: PlayerStatusProps) {
                     "text-[9px] font-bold mt-0.5",
                     player.status === 'voted' ? "text-green-700" : "text-gray-500"
                 )}>
-                    {player.status === 'voted' ? '投票済! ✅' : '考え中...'}
+                    {player.status === 'voted' ? '投票済み!' : (player.status === 'waiting' ? '待機中' : '考え中...')}
                 </span>
             </div>
           </div>

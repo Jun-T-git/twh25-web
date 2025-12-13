@@ -100,7 +100,7 @@ export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
             onClick={onVote}
             disabled={hasVoted}
             className={clsx(
-              "flex-1 max-w-[200px] h-16 rounded-2xl font-bold text-lg tracking-wide shadow-xl transition-all flex items-center justify-center gap-3 relative overflow-hidden group border-b-4 active:translate-y-1 active:border-b-0 active:mb-1",
+              "w-36 px-2 h-16 rounded-2xl font-bold text-lg tracking-wide shadow-xl transition-all flex items-center justify-center gap-2 relative overflow-hidden group border-b-4 active:translate-y-1 active:border-b-0 active:mb-1",
               hasVoted
                 ? "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed shadow-none border-b-0 translate-y-1"
                 : "bg-sky-500 border-sky-700 text-white shadow-sky-500/20 hover:bg-sky-400"

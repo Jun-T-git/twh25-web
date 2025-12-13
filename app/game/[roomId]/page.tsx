@@ -169,18 +169,6 @@ export default function GamePage() {
     try {
         await api.votePolicy(roomId, myUserId, policyId);
         setHasVoted(true);
-        
-        // Mock Bot Logic for Demo: Trigger bots to vote if they haven't
-        // Only host triggers this to avoid spam
-        if (playersData[myUserId]?.isHost) {
-             Object.values(playersData).forEach(async (p) => {
-                // If player is a bot (contains "(Bot)") and hasn't voted yet
-                if (p.displayName.includes('(Bot)') && !roomData.votes[p.id]) {
-                     const randomPolicy = roomData.currentPolicyIds[Math.floor(Math.random() * roomData.currentPolicyIds.length)];
-                     await api.votePolicy(roomId, p.id, randomPolicy);
-                }
-            });
-        }
     } catch (err) {
         console.error('Vote failed:', err);
         setHasVoted(false);
@@ -188,16 +176,6 @@ export default function GamePage() {
   };
   
   // Host Actions
-  const handleAddBot = async () => {
-      if (!myUserId) return;
-      const botNames = ['ゆい', 'れん', '健太先生'];
-      const randomName = botNames[Math.floor(Math.random() * botNames.length)];
-      try {
-          await api.joinRoom(roomId, `${randomName} (Bot)`);
-      } catch (err) {
-          console.error(err);
-      }
-  };
 
   const handleStartGame = async () => {
       if (!myUserId) return;
@@ -247,49 +225,7 @@ export default function GamePage() {
 
   if (!roomData) return null;
 
-  // --- LOBBY VIEW ---
-  if (roomData.status === 'LOBBY') {
-      const isHost = playersData[myUserId!]?.isHost;
-      return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 font-sans p-6">
-            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg text-center">
-                <h1 className="text-2xl font-black text-slate-800 mb-2">待合室</h1>
-                <p className="text-slate-500 mb-6">ID: {roomId}</p>
-                
-                <div className="flex flex-wrap gap-2 justify-center mb-8">
-                    {Object.values(playersData).map(p => (
-                        <span key={p.id} className="px-3 py-1 bg-sky-100 text-sky-800 rounded-full font-bold text-sm">
-                            {p.displayName} {p.isHost && '👑'}
-                        </span>
-                    ))}
-                </div>
 
-                {isHost ? (
-                    <div className="flex flex-col gap-3">
-                         <button onClick={handleAddBot} className="w-full py-3 border-2 border-dashed border-slate-300 text-slate-500 font-bold rounded-xl hover:bg-slate-50">
-                            + BOTを追加
-                        </button>
-                        <button 
-                            onClick={handleStartGame} 
-                            disabled={Object.keys(playersData).length !== 4}
-                            className={`w-full py-4 font-bold rounded-xl shadow-lg text-lg transition-all ${
-                                Object.keys(playersData).length === 4 
-                                ? 'bg-sky-500 text-white hover:bg-sky-400' 
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`}
-                        >
-                            {Object.keys(playersData).length === 4 ? 'ゲーム開始' : '4人揃うと開始できます'}
-                        </button>
-                    </div>
-                ) : (
-                    <div className="text-slate-500 font-bold animate-pulse">
-                        ホストがゲームを開始するのを待っています...
-                    </div>
-                )}
-            </div>
-        </div>
-      );
-  }
 
   // --- GAME VIEW ---
 
@@ -298,15 +234,23 @@ export default function GamePage() {
   const uiPlayers: Player[] = Object.values(playersData).map((p) => {
       const isMe = p.id === myUserId;
       const seedIndex = p.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % AVATAR_SEEDS.length;
+      const hasVoted = roomData.votes && roomData.votes[p.id];
+      let status: Player['status'] = 'thinking';
+      if (roomData.status === 'LOBBY') {
+           status = 'waiting';
+      } else if (hasVoted) {
+           status = 'voted';
+      }
+
       return {
           id: p.id,
           name: isMe ? `${p.displayName} (あなた)` : p.displayName,
           avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${AVATAR_SEEDS[seedIndex]}`,
-          status: roomData.votes[p.id] ? 'voted' : 'thinking'
+          status: status
       };
   });
 
-  const currentCards: PolicyCard[] = roomData.currentPolicyIds.map(id => {
+  const currentCards: PolicyCard[] = (roomData.currentPolicyIds || []).map(id => {
       const master = loadedPolicies[id];
       return {
           id: id,
@@ -366,6 +310,41 @@ export default function GamePage() {
         </div>
 
         <div className="flex-1 flex flex-col justify-center my-4">
+            {roomData.status === 'LOBBY' && (
+                <div className="mx-4 p-6 bg-white/90 backdrop-blur rounded-2xl shadow-xl border-4 text-center animate-in fade-in zoom-in duration-500 border-sky-400">
+                     <h2 className="text-lg font-bold text-sky-600 mb-2">待合室</h2>
+                     <h1 className="text-3xl font-black text-gray-800 mb-2">参加者募集中</h1>
+                     <p className="text-gray-500 mb-6 font-mono bg-gray-100 inline-block px-4 py-1 rounded-full">ID: {roomId}</p>
+                     
+                     <div className="mb-6">
+                         <p className="text-sm font-bold text-gray-400 mb-1">現在の参加人数</p>
+                         <p className="text-4xl font-black text-sky-500">{Object.keys(playersData).length} <span className="text-lg text-gray-400">/ 4</span></p>
+                     </div>
+ 
+                     {playersData[myUserId!]?.isHost ? (
+                        <div className="flex flex-col gap-3">
+                             <button 
+                                 onClick={handleStartGame} 
+                                 disabled={Object.keys(playersData).length !== 4}
+                                 className={`w-full py-4 font-bold rounded-xl shadow-lg text-lg transition-transform active:scale-95 ${
+                                     Object.keys(playersData).length === 4 
+                                     ? 'bg-sky-500 text-white hover:bg-sky-400 animate-pulse' 
+                                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                 }`}
+                             >
+                                 {Object.keys(playersData).length === 4 ? 'ゲーム開始' : '4人揃うと開始できます'}
+                             </button>
+                        </div>
+                     ) : (
+                         <div className="py-4 bg-sky-50 rounded-xl border border-sky-100">
+                             <p className="text-sky-600 font-bold animate-pulse">
+                                 ホストがゲームを開始するのを待っています...
+                             </p>
+                         </div>
+                     )}
+                </div>
+            )}
+
             {roomData.status === 'VOTING' && (
                 <PolicyCardCarousel
                     cards={currentCards}

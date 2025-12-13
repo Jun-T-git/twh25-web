@@ -11,7 +11,7 @@ export interface Player {
   id: string;
   name: string;
   avatarUrl?: string; // Optional, using placeholders for now
-  status: 'thinking' | 'voted';
+  status: 'thinking' | 'voted' | 'waiting';
 }
 
 export interface PolicyCard {
