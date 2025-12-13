@@ -1,6 +1,6 @@
 'use client';
 
-import { MOCK_POLICIES } from '@/app/api/_mock/data';
+import { MOCK_IDEOLOGIES, MOCK_POLICIES } from '@/app/api/_mock/data';
 import { PlayerData, RoomData } from '@/app/types/firestore';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
@@ -262,6 +262,15 @@ export default function GamePage() {
       }
   });
 
+  /* Player Ideology Resolution */
+  const myPlayer = playersData[myUserId || ''];
+  const myIdeology = myPlayer?.ideology 
+    ? {
+        ...MOCK_IDEOLOGIES.find(i => i.id === myPlayer.ideology)!,
+        coefficients: MOCK_IDEOLOGIES.find(i => i.id === myPlayer.ideology)!.coefficients as Record<string, number>
+    }
+    : undefined;
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden font-sans text-gray-900 pb-24">
       {/* Background */}
@@ -346,7 +355,7 @@ export default function GamePage() {
         <GameFooter
             onVote={handleVote}
             hasVoted={hasVoted}
-            myWinCondition="環境スコアを80以上に保ち、ゲーム終了を迎える。"
+            ideology={myIdeology}
         />
       )}
       

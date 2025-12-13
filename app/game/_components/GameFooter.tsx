@@ -6,11 +6,70 @@ import { useState } from 'react';
 interface GameFooterProps {
   onVote: () => void;
   hasVoted: boolean;
-  myWinCondition: string;
+  ideology?: {
+    name: string;
+    description: string;
+    coefficients?: Record<string, number>;
+  };
 }
 
-export function GameFooter({ onVote, hasVoted, myWinCondition }: GameFooterProps) {
+export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
   const [isRevealingIdentity, setIsRevealingIdentity] = useState(false);
+
+  // Calculate Radar Chart Points
+  const categories = [
+    { key: 'economy', label: '経済' },
+    { key: 'welfare', label: '福祉' },
+    { key: 'education', label: '教育' },
+    { key: 'security', label: '治安' },
+    { key: 'humanRights', label: '人権' },
+    { key: 'environment', label: '環境' },
+  ];
+
+  const getPoints = (coefficients: Record<string, number> = {}) => {
+    const total = categories.length;
+    const radius = 65; // Reduced from 80
+    const centerX = 100;
+    const centerY = 100;
+
+    return categories.map((cat, i) => {
+      const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
+      // Map -2..+2 to 0..1 scale relative to radius.
+      // -2 => 0 (center), 0 => 0.5, +2 => 1.0 (edge)
+      const val = coefficients[cat.key] ?? 0;
+      const normalized = (Math.max(-2, Math.min(2, val)) + 2) / 4;
+      const r = normalized * radius;
+      const x = centerX + r * Math.cos(angle);
+      const y = centerY + r * Math.sin(angle);
+      return `${x},${y}`;
+    }).join(' ');
+  };
+
+  const getAxisLine = (i: number) => {
+    const total = categories.length;
+    const radius = 65; // Reduced from 80
+    const centerX = 100;
+    const centerY = 100;
+    const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
+    const x = centerX + radius * Math.cos(angle);
+    const y = centerY + radius * Math.sin(angle);
+    return { x1: centerX, y1: centerY, x2: x, y2: y };
+  }
+
+  const getLabelPos = (i: number) => {
+     const total = categories.length;
+     const radius = 82; // Reduced from 95, giving ~18px padding
+     const centerX = 100;
+     const centerY = 100;
+     const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
+     const x = centerX + radius * Math.cos(angle);
+     const y = centerY + radius * Math.sin(angle);
+     // Adust alignment based on position
+     let anchor: 'middle' | 'end' | 'start' = 'middle';
+     if (x < 90) anchor = 'end';
+     if (x > 110) anchor = 'start';
+     return { x, y, anchor };
+  }
 
   return (
     <>
@@ -65,7 +124,7 @@ export function GameFooter({ onVote, hasVoted, myWinCondition }: GameFooterProps
 
       {/* Secret Identity Modal Overlay */}
       <AnimatePresence>
-        {isRevealingIdentity && (
+        {isRevealingIdentity && ideology && (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -73,11 +132,86 @@ export function GameFooter({ onVote, hasVoted, myWinCondition }: GameFooterProps
             className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-auto p-6 bg-black/50 backdrop-blur-sm"
             onClick={() => setIsRevealingIdentity(false)}
           >
-             <div className="bg-white p-6 rounded-3xl shadow-2xl text-center max-w-xs w-full border-4 border-indigo-100">
-                <h3 className="text-indigo-900 font-bold text-xl mb-4 border-b pb-2 border-indigo-50">㊙️ 勝利条件</h3>
-                <p className="text-gray-800 font-bold text-lg leading-relaxed">
-                    {myWinCondition}
-                </p>
+             <div className="bg-white p-6 rounded-3xl shadow-2xl text-center max-w-sm w-full border-4 border-indigo-100 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <h3 className="text-indigo-900 font-bold text-xl mb-4 border-b pb-2 border-indigo-50">㊙️ あなたの思想</h3>
+                <div className="mb-4">
+                  <span className="inline-block bg-indigo-100 text-indigo-800 text-lg font-bold px-4 py-1 rounded-full mb-2">
+                    {ideology.name}
+                  </span>
+                  <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                      {ideology.description}
+                  </p>
+                  
+                  {/* Radar Chart */}
+                  {ideology.coefficients && (
+                      <div className="relative w-full aspect-square max-w-[240px] mx-auto mb-2">
+                          <svg viewBox="0 0 200 200" className="w-full h-full">
+                              {/* Grid Circles */}
+                              <circle cx="100" cy="100" r="16.25" fill="none" stroke="#e2e8f0" strokeWidth="1" /> {/* -1.0 */}
+                              <circle cx="100" cy="100" r="32.5" fill="none" stroke="#e2e8f0" strokeWidth="1" /> {/* 0.0 */}
+                              <circle cx="100" cy="100" r="48.75" fill="none" stroke="#e2e8f0" strokeWidth="1" /> {/* +1.0 */}
+                              <circle cx="100" cy="100" r="65" fill="none" stroke="#cbd5e1" strokeWidth="1" /> {/* +2.0 */}
+                              
+                              {/* Axis Lines */}
+                              {categories.map((_, i) => {
+                                  const { x1, y1, x2, y2 } = getAxisLine(i);
+                                  return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#cbd5e1" strokeWidth="1" />;
+                              })}
+
+                              {/* Data Polygon */}
+                              <polygon 
+                                points={getPoints(ideology.coefficients)} 
+                                fill="rgba(99, 102, 241, 0.4)" 
+                                stroke="#4f46e5" 
+                                strokeWidth="2" 
+                              />
+                                
+                              {categories.map((cat, i) => {
+                                  const { x, y, anchor } = getLabelPos(i);
+                                  const val = ideology.coefficients?.[cat.key] ?? 0;
+                                  const valText = `x${val}`;
+                                  // Color logic: >1 = Green, <0 = Red, 0-1 = Gray
+                                  const valColor = val > 1 ? '#16a34a' : (val < 0 ? '#ef4444' : '#64748b');
+                                  const fontWeight = Math.abs(val) > 1 ? '900' : 'bold';
+
+                                  return (
+                                    <g key={cat.key}>
+                                        <text 
+                                            x={x} y={y - 4} 
+                                            textAnchor={anchor} 
+                                            dominantBaseline="auto" 
+                                            className="text-[10px] font-bold"
+                                            fill={valColor}
+                                            style={{ fontSize: '10px' }}
+                                        >
+                                            {cat.label}
+                                        </text>
+                                        <text 
+                                            x={x} y={y + 6}
+                                            textAnchor={anchor} 
+                                            dominantBaseline="auto" 
+                                            fill={valColor}
+                                            style={{ fontSize: '10px', fontWeight }}
+                                        >
+                                            {valText}
+                                        </text>
+                                    </g>
+                                  );
+                              })}
+                          </svg>
+                      </div>
+                  )}
+
+                </div>
+                <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded">
+                  ※この情報は他のプレイヤーには公開されません
+                </div>
+                <button 
+                  onClick={() => setIsRevealingIdentity(false)}
+                  className="mt-4 w-full py-2 bg-indigo-50 text-indigo-600 font-bold rounded-lg hover:bg-indigo-100"
+                >
+                    閉じる
+                </button>
              </div>
           </motion.div>
         )}
@@ -86,10 +220,6 @@ export function GameFooter({ onVote, hasVoted, myWinCondition }: GameFooterProps
   );
 }
 
-// Custom simple icon for Vote Box since generic Lucide might not match perfectly, 
-// strictly using Lucide here to fit the request "VoteBoxIcon" needs to be defined or imported.
-// Actually standard lucide `Vote` or `Inbox` works. Let's use `Vote` from Lucide if available or `Archive`.
-// Updating imports in next block.
 function VoteBoxIcon({ size }: { size: number }) {
     return (
         <svg 
