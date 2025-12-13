@@ -28,8 +28,8 @@ export function PolicyCardCarousel({ cards, selectedIndex, onSelect }: PolicyCar
             <motion.div
               key={card.id}
               className={clsx(
-                "snap-center shrink-0 w-[280px] h-[400px] rounded-xl bg-white shadow-xl flex flex-col overflow-hidden border transition-all duration-300 cursor-pointer",
-                isActive ? "border-sky-400 ring-2 ring-sky-100 scale-100 shadow-2xl z-10" : "border-gray-100 scale-95"
+                "snap-center shrink-0 w-[280px] h-[400px] rounded-xl bg-white opacity-95 shadow-xl flex flex-col overflow-hidden border transition-all duration-300 cursor-pointer",
+                isActive ? "border-sky-400 ring-2 ring-sky-400 scale-100 shadow-2xl z-10" : "border-gray-100 scale-95"
               )}
               onClick={() => onSelect(index)}
               whileTap={{ scale: 0.98 }}
@@ -39,7 +39,7 @@ export function PolicyCardCarousel({ cards, selectedIndex, onSelect }: PolicyCar
                 <img src={card.imageUrl ?? `/images/policy-0${index + 1}.png`} alt={card.title} className="w-full h-full object-cover" />                
                 {isActive && (
                     <div className="absolute top-3 right-3 bg-sky-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
-                        SELECTED
+                        選択中
                     </div>
                 )}
               </div>

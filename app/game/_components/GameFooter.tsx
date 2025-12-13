@@ -11,9 +11,10 @@ interface GameFooterProps {
     description: string;
     coefficients?: Record<string, number>;
   };
+  playerName?: string;
 }
 
-export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
+export function GameFooter({ onVote, hasVoted, ideology, playerName }: GameFooterProps) {
   const [isRevealingIdentity, setIsRevealingIdentity] = useState(false);
 
   // Calculate Radar Chart Points
@@ -77,46 +78,51 @@ export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
         <div className="flex gap-4 items-end pointer-events-auto max-w-md mx-auto">
           {/* Secret Identity Button (ID Card Style) */}
           <div className="flex flex-col gap-1 items-center">
-            <div className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-t-md w-full text-center border-x border-t border-blue-200">
-                ユーザID
-            </div>
             <button
                 className={clsx(
-                "w-24 h-16 rounded-b-md rounded-tr-md bg-white border-2 border-blue-200 shadow-lg flex flex-col items-center justify-center p-1 transition-transform active:scale-95",
-                isRevealingIdentity ? "bg-blue-50" : ""
+                "h-16 w-24 rounded-2xl bg-white border-2 border-sky-100 border-b-4 border-b-sky-200 shadow-xl flex flex-col items-center justify-center p-1 transition-all active:translate-y-1 active:border-b-0 active:mb-1",
+                isRevealingIdentity ? "bg-sky-50 border-sky-300 border-b-sky-400" : ""
                 )}
                 onClick={() => setIsRevealingIdentity(true)}
             >
-                <div className="w-8 h-8 rounded-full bg-gray-200 mb-1 flex items-center justify-center">
-                    <IdCard size={16} className="text-gray-400" />
+                <div className="w-8 h-8 rounded-full bg-sky-50 flex items-center justify-center mb-1">
+                    <IdCard size={18} className="text-sky-500" />
                 </div>
-                <div className="flex flex-col items-center leading-none">
-                    <span className="text-[10px] font-bold text-gray-800">自分の思想</span>
-                    <span className="text-[8px] text-gray-500 scale-90">(タップで確認)</span>
-                </div>
+                <span className="text-[10px] font-bold text-gray-700 leading-tight">
+                    あなたの思想
+                </span>
             </button>
           </div>
 
           {/* Key Spacer */}
           <div className="flex-1" />
 
-          {/* Vote Button */}
           <button
             onClick={onVote}
             disabled={hasVoted}
             className={clsx(
-              "flex-1 max-w-[200px] h-14 rounded-2xl font-bold text-lg tracking-wide shadow-xl shadow-blue-500/30 transition-all active:scale-95 flex items-center justify-center gap-2 border-b-4",
+              "flex-1 max-w-[200px] h-16 rounded-2xl font-bold text-lg tracking-wide shadow-xl transition-all flex items-center justify-center gap-3 relative overflow-hidden group border-b-4 active:translate-y-1 active:border-b-0 active:mb-1",
               hasVoted
-                ? "bg-gray-400 border-gray-600 text-white cursor-not-allowed shadow-none border-b-0 translate-y-1"
-                : "bg-sky-500 border-sky-600 text-white hover:bg-sky-400"
+                ? "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed shadow-none border-b-0 translate-y-1"
+                : "bg-sky-500 border-sky-700 text-white shadow-sky-500/20 hover:bg-sky-400"
             )}
           >
-            <div className="bg-white/20 p-1 rounded">
+            {/* Top Gloss Highlight */}
+            {!hasVoted && (
+                <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+            )}
+
+            <div className={clsx(
+                "p-1.5 rounded-xl transition-transform group-hover:scale-110",
+                hasVoted ? "bg-slate-300" : "bg-sky-700/50"
+            )}>
                 <VoteBoxIcon size={20} />
             </div>
-            <div className="flex flex-col items-start leading-none">
-                <span className="text-sm">投票する</span>
-                <span className="text-[10px] opacity-80">(VOTE)</span>
+            <div className="flex flex-col items-start leading-none gap-0.5">
+                <span className="text-sm font-black tracking-widest drop-shadow-sm">{hasVoted ? '投票済み' : '投票する'}</span>
+                <span className={clsx("text-[9px] font-bold tracking-widest", hasVoted ? "opacity-60" : "text-sky-100")}>
+                    {hasVoted ? 'COMPLETED' : 'SUBMIT VOTE'}
+                </span>
             </div>
           </button>
         </div>
@@ -132,10 +138,10 @@ export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
             className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-auto p-6 bg-black/50 backdrop-blur-sm"
             onClick={() => setIsRevealingIdentity(false)}
           >
-             <div className="bg-white p-6 rounded-3xl shadow-2xl text-center max-w-sm w-full border-4 border-indigo-100 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <h3 className="text-indigo-900 font-bold text-xl mb-4 border-b pb-2 border-indigo-50">㊙️ あなたの思想</h3>
+             <div className="bg-white p-6 rounded-3xl shadow-2xl text-center max-w-sm w-full border-4 border-sky-100 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <h3 className="text-sky-900 font-bold text-xl mb-4 border-b pb-2 border-sky-50">㊙️ あなたの思想</h3>
                 <div className="mb-4">
-                  <span className="inline-block bg-indigo-100 text-indigo-800 text-lg font-bold px-4 py-1 rounded-full mb-2">
+                  <span className="inline-block bg-sky-100 text-sky-800 text-lg font-bold px-4 py-1 rounded-full mb-2">
                     {ideology.name}
                   </span>
                   <p className="text-gray-700 text-sm leading-relaxed mb-4">
@@ -159,12 +165,12 @@ export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
                               })}
 
                               {/* Data Polygon */}
-                              <polygon 
-                                points={getPoints(ideology.coefficients)} 
-                                fill="rgba(99, 102, 241, 0.4)" 
-                                stroke="#4f46e5" 
-                                strokeWidth="2" 
-                              />
+                                <polygon 
+                                  points={getPoints(ideology.coefficients)} 
+                                  fill="rgba(14, 165, 233, 0.4)" 
+                                  stroke="#0ea5e9" 
+                                  strokeWidth="2" 
+                                />
                                 
                               {categories.map((cat, i) => {
                                   const { x, y, anchor } = getLabelPos(i);
@@ -180,7 +186,7 @@ export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
                                             x={x} y={y - 4} 
                                             textAnchor={anchor} 
                                             dominantBaseline="auto" 
-                                            className="text-[10px] font-bold"
+                                            className="text-[10px] fill-sky-900 font-bold"
                                             fill={valColor}
                                             style={{ fontSize: '10px' }}
                                         >
@@ -208,7 +214,7 @@ export function GameFooter({ onVote, hasVoted, ideology }: GameFooterProps) {
                 </div>
                 <button 
                   onClick={() => setIsRevealingIdentity(false)}
-                  className="mt-4 w-full py-2 bg-indigo-50 text-indigo-600 font-bold rounded-lg hover:bg-indigo-100"
+                  className="mt-4 w-full py-3 bg-sky-50 text-sky-600 font-bold rounded-lg hover:bg-sky-100"
                 >
                     閉じる
                 </button>

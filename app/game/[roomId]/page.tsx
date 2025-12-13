@@ -356,6 +356,7 @@ export default function GamePage() {
             onVote={handleVote}
             hasVoted={hasVoted}
             ideology={myIdeology}
+            playerName={myPlayer?.displayName}
         />
       )}
       
