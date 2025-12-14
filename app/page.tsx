@@ -86,8 +86,8 @@ export default function Home() {
         {/* Title Image */}
         <div className="w-full max-w-[280px] animate-in fade-in slide-in-from-top-4 duration-700">
             <Image 
-                src="/images/title.png"
-                alt="おまえの町は俺の町"
+                src="/images/game-title.png"
+                alt="ウヨサヨ"
                 width={600}
                 height={400}
                 className="w-full h-auto drop-shadow-2xl filter saturate-110"
@@ -96,7 +96,7 @@ export default function Home() {
         </div>
 
         {/* Tagline */}
-        <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
+        <div className="text-center mb-8 mt-2 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
            <div className="inline-block bg-white/70 backdrop-blur-md py-2 px-6 rounded-full border border-white/40 shadow-sm">
              <p className="text-lg font-bold text-slate-900 drop-shadow-sm">
                自分の未来を、切り開け。
