@@ -31,7 +31,6 @@ export default function GamePage() {
   const [loadedIdeologies, setLoadedIdeologies] = useState<Record<string, MasterIdeology>>({});
   
   const [selectedCardIndex, setSelectedCardIndex] = useState(0);
-  const [selectedPassedPolicyIndex, setSelectedPassedPolicyIndex] = useState(0);
   const [hasVoted, setHasVoted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -519,51 +518,58 @@ export default function GamePage() {
                               </h3>
                               
                               {(roomData.passedPolicyIds || []).length > 0 ? (
-                                <PolicyCardCarousel 
-                                    cards={passedCards}
-                                    selectedIndex={selectedPassedPolicyIndex}
-                                    onSelect={setSelectedPassedPolicyIndex}
-                                    getBadge={(card, index) => (
-                                         <div className="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md border border-white/20">
-                                             {index + 1}ターン目
-                                         </div>
-                                    )}
-                                    getOverlay={() => (
-                                        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                                            <div className="border-[6px] border-red-600 text-red-600 font-black text-6xl px-6 py-2 rounded-xl -rotate-12 opacity-90 shadow-lg bg-white/20 backdrop-blur-sm tracking-widest">
-                                                可決
-                                            </div>
-                                        </div>
-                                    )}
-                                />
+                                <div className="space-y-4 px-4">
+                                  {passedCards.map((card, index) => {
+                                      const policy = loadedPolicies[card.id];
+                                      if (!policy) return null;
+
+                                      return (
+                                          <div key={card.id} className="bg-slate-50/80 rounded-xl border border-slate-200 p-4 text-left shadow-sm">
+                                              <div className="flex justify-between items-start mb-2">
+                                                  <h4 className="font-bold text-lg text-slate-800">{policy.title}</h4>
+                                                  <span className="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded whitespace-nowrap ml-2 h-fit">
+                                                      {index + 1}ターン目
+                                                  </span>
+                                              </div>
+                                              
+                                              <p className="text-sm text-slate-600 mb-3 leading-relaxed">
+                                                  {policy.description}
+                                              </p>
+
+                                              <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-100 mb-3">
+                                                  <div className="text-xs font-bold text-yellow-600 mb-1 flex items-center gap-1">
+                                                      <span>NEWS</span>
+                                                  </div>
+                                                  <p className="text-sm font-medium text-slate-800">
+                                                      {policy.newsFlash}
+                                                  </p>
+                                              </div>
+
+                                              <div className="flex flex-wrap gap-2">
+                                                  {(['economy', 'welfare', 'education', 'security', 'humanRights', 'environment'] as const).map(key => {
+                                                      const val = policy.effects?.[key];
+                                                      if (!val) return null;
+                                                      
+                                                      const label = PARAM_LABELS[key];
+                                                      const style = PARAM_STYLES[key];
+                                                      return (
+                                                          <span key={key} className={`text-xs font-bold px-2 py-1 rounded border flex items-center gap-0.5 ${style}`}>
+                                                              {label}
+                                                              {val > 0 ? (
+                                                                  <ChevronsUp size={14} strokeWidth={3} className="text-green-600" />
+                                                              ) : (
+                                                                  <ChevronsDown size={14} strokeWidth={3} className="text-red-500" />
+                                                              )}
+                                                          </span>
+                                                      );
+                                                  })}
+                                              </div>
+                                          </div>
+                                      );
+                                  })}
+                                </div>
                               ) : (
                                 <div className="px-4 text-gray-500">採用された政策はありません。</div>
-                              )}
-                              
-                              {/* Display Effects of Selected Passed Policy */}
-                              {passedCards.length > 0 && loadedPolicies[passedCards[selectedPassedPolicyIndex]?.id] && (
-                                  <div className="mt-4 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 mx-4">
-                                      <div className="text-sm font-bold text-slate-500 mb-2">政策効果:</div>
-                                      <div className="flex flex-wrap gap-2 justify-center">
-                                          {(['economy', 'welfare', 'education', 'security', 'humanRights', 'environment'] as const).map((key) => {
-                                              const val = loadedPolicies[passedCards[selectedPassedPolicyIndex].id].effects?.[key];
-                                              if (!val) return null;
-                                              
-                                              const label = PARAM_LABELS[key];
-                                              const style = PARAM_STYLES[key];
-                                              return (
-                                                  <span key={key} className={`text-xs font-bold px-2 py-1 rounded border flex items-center gap-0.5 ${style}`}>
-                                                      {label}
-                                                      {val > 0 ? (
-                                                          <ChevronsUp size={16} strokeWidth={3} className="text-green-600" />
-                                                      ) : (
-                                                          <ChevronsDown size={16} strokeWidth={3} className="text-red-500" />
-                                                      )}
-                                                  </span>
-                                              );
-                                          })}
-                                      </div>
-                                  </div>
                               )}
 
                             </div>
