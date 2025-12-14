@@ -6,6 +6,7 @@ import { ChevronsDown, ChevronsUp, History, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { CityStatusModal } from '../_components/CityStatusModal';
 import { GameFooter } from '../_components/GameFooter';
 import { GameHeader } from '../_components/GameHeader';
 import { PetitionModal } from '../_components/PetitionModal';
@@ -38,6 +39,7 @@ export default function GamePage() {
 
   // Petition State
   const [showPetitionModal, setShowPetitionModal] = useState(false);
+  const [showCityStatus, setShowCityStatus] = useState(false);
 
   // 1. Initialize & Restore Session
   useEffect(() => {
@@ -349,6 +351,7 @@ export default function GamePage() {
             turn={roomData.turn}
             totalTurns={roomData.maxTurns}
             stats={stats}
+            onShowDetails={() => setShowCityStatus(true)}
         />
 
         <div className="mt-4">
@@ -600,6 +603,13 @@ export default function GamePage() {
           isOpen={showPetitionModal}
           onClose={() => setShowPetitionModal(false)}
           onSubmit={handlePetitionSubmit}
+      />
+
+      <CityStatusModal
+          isOpen={showCityStatus}
+          onClose={() => setShowCityStatus(false)}
+          cityImageUrl={roomData.lastResult?.cityImageUrl}
+          stats={stats}
       />
 
       {/* Host Controls */}

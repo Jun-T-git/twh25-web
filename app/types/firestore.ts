@@ -72,6 +72,7 @@ export interface RoomData {
     actualEffects: PolicyEffect;
     newsFlash: string;
     voteDetails: Record<string, string>;
+    cityImageUrl?: string;
   } | null;
   gameResult?: GameResult;
 }
