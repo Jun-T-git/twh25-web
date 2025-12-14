@@ -154,11 +154,22 @@ export async function nextTurn(roomId: string): Promise<{ status: string, turn: 
 
 export async function getPolicies(policyIds: string[]): Promise<MasterPolicy[]> {
   const promises = policyIds.map(async (id) => {
-    const docRef = doc(db, 'master_policies', id);
-    const snap = await getDoc(docRef);
+    // 1. Try master_policies
+    let docRef = doc(db, 'master_policies', id);
+    let snap = await getDoc(docRef);
+
     if (snap.exists()) {
       return { id: snap.id, ...snap.data() } as MasterPolicy;
     }
+
+    // 2. Try generatedPolicies
+    docRef = doc(db, 'generatedPolicies', id);
+    snap = await getDoc(docRef);
+
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() } as MasterPolicy;
+    }
+    
     return null;
   });
 
@@ -179,4 +190,24 @@ export async function getIdeologies(ideologyIds: string[]): Promise<MasterIdeolo
 
     const ideologies = await Promise.all(promises);
     return ideologies.filter((i): i is MasterIdeology => i !== null);
+}
+
+export async function proposePetition(roomId: string, playerId: string, text: string): Promise<{ approved: boolean, policyId: string, message: string }> {
+  const res = await fetch(`${API_BASE}/${roomId}/petition`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerId, text }),
+  });
+  if (!res.ok) {
+     const error = await res.json();
+     throw new Error(error.message || 'Failed to submit petition');
+  }
+  return res.json();
+}
+
+export async function markPetitionUsed(roomId: string, playerId: string) {
+    const playerRef = doc(db, 'rooms', roomId, 'players', playerId);
+    await import('firebase/firestore').then(({ updateDoc }) => {
+        updateDoc(playerRef, { isPetitionUsed: true });
+    });
 }

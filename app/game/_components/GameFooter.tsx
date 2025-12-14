@@ -1,11 +1,13 @@
 import { clsx } from 'clsx';
 import { AnimatePresence, motion } from 'framer-motion';
-import { IdCard, Lightbulb, Target } from 'lucide-react';
+import { IdCard, Lightbulb, PenTool, Target } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 interface GameFooterProps {
   onVote: () => void;
   hasVoted: boolean;
+  onPetition?: () => void;
+  isPetitionUsed?: boolean;
   ideology?: {
     name: string;
     description: string;
@@ -14,7 +16,7 @@ interface GameFooterProps {
   defaultOpen?: boolean;
 }
 
-export function GameFooter({ onVote, hasVoted, ideology, defaultOpen = false }: GameFooterProps) {
+export function GameFooter({ onVote, hasVoted, onPetition, isPetitionUsed, ideology, defaultOpen = false }: GameFooterProps) {
   const [isRevealingIdentity, setIsRevealingIdentity] = useState(defaultOpen);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [origin, setOrigin] = useState({ x: 0, y: 0 });
@@ -76,57 +78,90 @@ export function GameFooter({ onVote, hasVoted, ideology, defaultOpen = false }: 
 
   return (
     <>
-      <footer className="fixed bottom-0 w-full p-4 pb-8 z-50 pointer-events-none">
-        <div className="flex gap-4 items-end pointer-events-auto max-w-md mx-auto">
-          {/* Secret Identity Button (ID Card Style) */}
-          <div className="flex flex-col gap-1 items-center">
-            <button
-                className={clsx(
-                "h-16 w-24 rounded-2xl bg-white border-2 border-sky-100 border-b-4 border-b-sky-200 shadow-xl flex flex-col items-center justify-center p-1 transition-all active:translate-y-1 active:border-b-0 active:mb-1",
-                isRevealingIdentity ? "bg-sky-50 border-sky-300 border-b-sky-400" : ""
-                )}
-                onClick={() => setIsRevealingIdentity(true)}
-            >
-                <div className="w-8 h-8 rounded-full bg-sky-50 flex items-center justify-center mb-1">
-                    <IdCard size={18} className="text-sky-500" />
-                </div>
-                <span className="text-[10px] font-bold text-gray-700 leading-tight">
-                    あなたの思想<br/>(勝利条件)
-                </span>
-            </button>
-          </div>
+      <footer className="fixed bottom-0 w-full p-3 pb-6 z-50 pointer-events-none">
+        <div className="grid grid-cols-3 gap-3 items-end pointer-events-auto max-w-md mx-auto w-full">
+          
+          {/* 1. Secret Identity Button */}
+          <button
+            className={clsx(
+              "w-full h-16 rounded-2xl font-bold tracking-wide shadow-xl transition-all flex flex-col items-center justify-center relative overflow-hidden group border-2 border-b-4 active:translate-y-1 active:border-b-0 active:mb-1",
+              isRevealingIdentity
+                ? "bg-slate-100 border-slate-300 text-slate-400 translate-y-1 border-b-0 shadow-none"
+                : "bg-white border-slate-200 border-b-slate-300 text-slate-600 shadow-sm hover:bg-slate-50"
+            )}
+            onClick={() => setIsRevealingIdentity(true)}
+          >
+             <div className="mb-0.5 p-1 rounded-full bg-slate-100/80">
+                <IdCard size={20} className="text-slate-500" />
+             </div>
+             <span className="text-[10px] font-black leading-none">思想確認</span>
+             <span className="text-[9px] font-bold text-slate-400 scale-75 origin-top">IDENTITY</span>
+          </button>
 
-          {/* Key Spacer */}
-          <div className="flex-1" />
-
+          {/* 2. Vote Button (Center) */}
           <button
             onClick={onVote}
             disabled={hasVoted}
             className={clsx(
-              "w-36 px-2 h-16 rounded-2xl font-bold text-lg tracking-wide shadow-xl transition-all flex items-center justify-center gap-2 relative overflow-hidden group border-b-4 active:translate-y-1 active:border-b-0 active:mb-1",
+              "w-full h-16 rounded-2xl font-bold tracking-wide shadow-xl transition-all flex flex-col items-center justify-center relative overflow-hidden group border-b-4 active:translate-y-1 active:border-b-0 active:mb-1",
               hasVoted
                 ? "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed shadow-none border-b-0 translate-y-1"
                 : "bg-sky-500 border-sky-700 text-white shadow-sky-500/20 hover:bg-sky-400"
             )}
           >
-            {/* Top Gloss Highlight */}
+            {/* Gloss */}
             {!hasVoted && (
                 <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
             )}
 
-            <div className={clsx(
-                "p-1.5 rounded-xl transition-transform group-hover:scale-110",
-                hasVoted ? "bg-slate-300" : "bg-sky-700/50"
-            )}>
-                <VoteBoxIcon size={20} />
+            <div className="mb-0.5 p-1 rounded-full bg-black/10">
+               {hasVoted ? <Target size={20} /> : <VoteBoxIcon size={20} />}
             </div>
-            <div className="flex flex-col items-start leading-none gap-0.5">
-                <span className="text-sm font-black tracking-widest drop-shadow-sm">{hasVoted ? '投票済み' : '投票する'}</span>
-                <span className={clsx("text-[9px] font-bold tracking-widest", hasVoted ? "opacity-60" : "text-sky-100")}>
-                    {hasVoted ? 'COMPLETED' : 'SUBMIT VOTE'}
-                </span>
-            </div>
+            <span className="text-xs font-black leading-none">{hasVoted ? '投票済' : '投票'}</span>
+            <span className={clsx("text-[9px] font-bold scale-75 origin-top", hasVoted ? "text-slate-400" : "text-sky-100")}>
+                VOTE
+            </span>
           </button>
+
+          {/* 3. Petition Button (Right) */}
+          {onPetition ? (
+             <div className="relative w-full h-16">
+                <button
+                    onClick={onPetition}
+                    disabled={isPetitionUsed}
+                    className={clsx(
+                    "w-full h-full rounded-2xl font-bold tracking-wide shadow-xl transition-all flex flex-col items-center justify-center relative overflow-hidden group border-b-4 active:translate-y-1 active:border-b-0 active:mb-1",
+                    isPetitionUsed
+                        ? "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed shadow-none border-b-0 translate-y-1"
+                        : "bg-sky-500 border-sky-700 text-white shadow-sky-500/20 hover:bg-sky-400"
+                    )}
+                >
+                    {/* Gloss */}
+                    {!isPetitionUsed && (
+                        <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+                    )}
+
+                    <div className="mb-0.5 p-1 rounded-full bg-black/10">
+                        <PenTool size={20} />
+                    </div>
+                    <span className="text-xs font-black leading-none">{isPetitionUsed ? '提案済' : '政策提案'}</span>
+                    <span className={clsx("text-[9px] font-bold scale-75 origin-top", isPetitionUsed ? "text-slate-400" : "text-sky-100")}>
+                        PETITION
+                    </span>
+                </button>
+
+                {/* Badge (Outside button to avoid clipping) */}
+                {!isPetitionUsed && (
+                    <div className="absolute -top-2 -right-2 z-10 pointer-events-none">
+                        <span className="inline-flex rounded-full bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 border-2 border-white shadow-md">
+                        残り1回
+                        </span>
+                    </div>
+                )}
+             </div>
+          ) : (
+             <div /> /* Spacer if no petition button */
+          )}
         </div>
       </footer>
 

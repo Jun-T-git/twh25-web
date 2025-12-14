@@ -8,6 +8,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { GameFooter } from '../_components/GameFooter';
 import { GameHeader } from '../_components/GameHeader';
+import { PetitionModal } from '../_components/PetitionModal';
 import { PlayerStatus } from '../_components/PlayerStatus';
 import { PolicyCardCarousel } from '../_components/PolicyCardCarousel';
 import * as api from '../lib/api';
@@ -36,7 +37,8 @@ export default function GamePage() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinName, setJoinName] = useState('');
 
-
+  // Petition State
+  const [showPetitionModal, setShowPetitionModal] = useState(false);
 
   // 1. Initialize & Restore Session
   useEffect(() => {
@@ -64,16 +66,12 @@ export default function GamePage() {
         setRoomData(room);
         setPlayersData(players);
 
-
-
         // Check if my vote is recorded
         if (myUserId && room.votes && room.votes[myUserId]) {
             setHasVoted(true);
         } else {
             setHasVoted(false);
         }
-
-
     });
 
     return () => unsubscribe();
@@ -162,8 +160,6 @@ export default function GamePage() {
     }
   }, [roomData?.status, roomData?.lastResult?.passedPolicyId, roomData?.currentPolicyIds]);
 
-
-
   const handleJoinSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!joinName.trim()) return;
@@ -191,6 +187,13 @@ export default function GamePage() {
         console.error('Vote failed:', err);
         setHasVoted(false);
     }
+  };
+
+  const handlePetitionSubmit = async (text: string) => {
+    if (!roomId || !myUserId) {
+        throw new Error("プレイヤー情報が見つかりません");
+    }
+    return await api.proposePetition(roomId, myUserId, text);
   };
   
   // Host Actions
@@ -242,8 +245,6 @@ export default function GamePage() {
   }
 
   if (!roomData) return null;
-
-
 
   // --- GAME VIEW ---
 
@@ -583,10 +584,17 @@ export default function GamePage() {
             hasVoted={hasVoted}
             ideology={myIdeology}
             defaultOpen={roomData.turn === 1}
+            onPetition={() => setShowPetitionModal(true)}
+            isPetitionUsed={playersData[myUserId!]?.isPetitionUsed}
         />
       )}
       
-
+      {/* Petition Modal */}
+      <PetitionModal 
+          isOpen={showPetitionModal}
+          onClose={() => setShowPetitionModal(false)}
+          onSubmit={handlePetitionSubmit}
+      />
 
       {/* Host Controls */}
       {roomData.status === 'RESULT' && playersData[myUserId!]?.isHost && (
@@ -611,6 +619,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-
-
