@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ウヨサヨ
 
-## Getting Started
+## 📖 概要
+「理想の街を作るための、予測と合意形成シミュレーション」ゲームです。
+プレイヤーは市民となり、選挙（投票）を通じて街を成長させていきますが、全員が同じ「理想」を持っているわけではありません。
+隠された個人の思想（Hidden Agenda）と、具体的な効果が伏せられた「ブラックボックス政策」を読み解きながら、自分の理想とする街を実現することを目指します。
 
-First, run the development server:
+## 🎮 ゲームルール概要
+
+### コンセプト
+市民として、多数決による政策決定を行い、街のパラメータ（経済、福祉、教育、環境、治安、人権）を変化させていきます。
+ただし、プレイヤー個々には他人に知られていない「思想（勝利条件）」があり、全員にとっての正解が存在するとは限りません。
+
+### 主な特徴
+- **マルチプレイ**: 最大4人でのリアルタイム対戦。
+- **隠匿思想 (Hidden Agenda)**: 他人の勝利条件は見えません。投票行動から推測する必要があります。
+- **ブラックボックス政策**: 政策の具体的な数値効果は可決されるまで分かりません。文脈から予測する力が試されます。
+- **政策提案**: ゲーム中に1度だけ、独自の政策をAIに提案（陳情）し、審査に通れば選択肢に追加させることができます。
+
+### ゲームの流れ
+1. **政策提示**: ランダムに3枚の政策カードが提示される。
+2. **アクション**: AIへの陳情などが可能。
+3. **投票**: 実施したい政策に投票を行う。
+4. **結果開示**: 最多得票の政策が可決され、街のパラメータが変動する。
+
+※ いずれかのパラメータが0になると街は崩壊し、ゲームオーバーとなります。
+
+## 🛠️ 技術スタック
+
+モダンなWeb技術を採用し、快適なUXとリッチなデザインを実現しています。
+
+- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/)
+- **Library**: [React 19](https://react.dev/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Backend / DB**: [Firebase (Firestore)](https://firebase.google.com/)
+- **Animation**: [Framer Motion](https://www.framer.com/motion/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+
+## 🚀 開発環境のセットアップ
+
+### 前提条件
+- Node.js (v20以上推奨)
+- pnpm (パッケージマネージャー)
+
+### インストール & 起動
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# リポジトリのクローン (またはディレクトリへの移動)
+cd twh25-web
+
+# 依存関係のインストール
+pnpm install
+
+# 開発サーバーの起動
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで `http://localhost:3000` にアクセスして確認してください。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 環境変数
+Firestore接続のために、ルートディレクトリに `.env` ファイルが必要です。
+Firebaseのプロジェクト設定を含めてください。
